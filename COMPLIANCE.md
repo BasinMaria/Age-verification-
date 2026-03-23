@@ -14,11 +14,12 @@
 3. [⛔ ВСЁ ОСТАЛЬНОЕ — ЗАБЛОКИРОВАНО](#3--всё-остальное--заблокировано)
 4. [🔓 План постепенной разблокировки](#4--план-постепенной-разблокировки)
 5. [Форма даты рождения — при регистрации и через соцсети](#5-форма-даты-рождения--при-регистрации-и-через-соцсети)
-6. [GeoIP — определение страны автоматически](#6-geoip--определение-страны-автоматически)
-7. [Какие данные хранить, какие удалять (+ про IP и сессии)](#7-какие-данные-хранить-какие-удалять)
-8. [Детальный разбор по каждой стране (с линками на законы)](#8-детальный-разбор-по-каждой-стране-с-линками-на-законы)
-9. [Чек-лист перед запуском](#9-чек-лист-перед-запуском)
-10. [Все ссылки на законы (одним списком)](#все-ссылки-на-законы-одним-списком)
+6. [📋 Обязательные экраны согласий (Consent Flows)](#6--обязательные-экраны-согласий-consent-flows)
+7. [GeoIP — определение страны автоматически](#7-geoip--определение-страны-автоматически)
+8. [Какие данные хранить, какие удалять (+ про IP и сессии)](#8-какие-данные-хранить-какие-удалять)
+9. [Детальный разбор по каждой стране (с линками на законы)](#9-детальный-разбор-по-каждой-стране-с-линками-на-законы)
+10. [Чек-лист перед запуском](#10-чек-лист-перед-запуском)
+11. [Все ссылки на законы (одним списком)](#все-ссылки-на-законы-одним-списком)
 
 ---
 
@@ -364,7 +365,459 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-## 6. GeoIP — определение страны автоматически
+## 6. 📋 Обязательные экраны согласий (Consent Flows)
+
+> **Все экраны ниже — ОБЯЗАТЕЛЬНЫ для публикации.**
+> Без них App Store / Google Play **отклонят** приложение, или мы нарушим закон.
+> Каждый экран привязан к конкретному закону / правилу магазина.
+> Для каждого указаны: тексты для frontend, ключи переводов, логика UI, требования к backend.
+
+```
+ПОРЯДОК ПОКАЗА ЭКРАНОВ (после успешной регистрации / входа):
+
+  Регистрация (email ИЛИ Google/Facebook/Apple)
+       │
+       ▼
+  DOB → проверка возраста (Секция 5)
+       │
+       ▼
+  ПОТОК 1: GDPR Privacy Defaults — профиль публичный
+  (один раз, ПЕРЕД лентой)
+       │
+       ▼
+  → Пользователь попадает в Ленту (Feed)
+       │
+       ├── Первая попытка создать пост/комментарий/фото →
+       │   ПОТОК 2: UGC Community Guidelines
+       │
+       ├── Push-уведомления (онбординг или первая попытка) →
+       │   ПОТОК 3: Push Notifications Permission
+       │
+       ├── Первое фото с камеры →
+       │   ПОТОК 4: Camera Permission
+       │
+       ├── Первый выбор из галереи →
+       │   ПОТОК 5: Photos Permission
+       │
+       ├── Первый запуск на iOS 14.5+ (если есть аналитика/реклама) →
+       │   ПОТОК 6: App Tracking Transparency (только iOS)
+       │
+       └── Добавление/изменение номера телефона →
+           ПОТОК 7: SMS Consent
+```
+
+---
+
+### 🔵 ПОТОК 1: GDPR Privacy Defaults — Welcome Screen
+
+| | |
+|---|---|
+| **Цель** | Уведомить пользователя о видимости профиля по умолчанию |
+| **Закон** | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) — «Data protection by default» |
+| **Триггер** | Показывается **1 раз** сразу после успешной регистрации, **ПЕРЕД** лентой (Feed) |
+| **Блокировка** | Пользователь **НЕ МОЖЕТ** пользоваться приложением, пока не нажмёт кнопку согласия |
+| **Важно** | После нажатия → переход на Feed (ленту), больше не показывается |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Welcome to Bestme | `welcome_to_bestme` |
+| **Body 1** | Your profile is visible to other users by default. | `profile_visible_by_default` |
+| **Body 2** | This means your name, photos, and public posts can be seen by all members of the platform. | `name_photos_posts_visible` |
+| **Body 3** | You can change this at any time in Settings → [Privacy & Visibility]. | `change_in_settings_privacy_visibility` |
+| **Body 4** | Your email, phone number, and date of birth are ALWAYS hidden from other users. | `email_phone_dob_always_hidden` |
+| **Primary Button** | I understand, continue | `i_understand_continue` |
+| **Footer** | By continuing, you agree to our [Terms of Service] and [Privacy Policy]. | `by_continuing_agree_terms_privacy` |
+
+> **Примечание:** `[Privacy & Visibility]`, `[Terms of Service]`, `[Privacy Policy]` — это ссылки внутри текста.
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь завершил регистрацию (DOB проверен, >= 18)
+       │
+       ▼
+2. Показать Welcome Screen (ПОТОК 1)
+   Экран блокирует навигацию — нельзя закрыть, нельзя перейти куда-либо
+       │
+       ▼
+3. Пользователь нажимает «I understand, continue»
+       │
+       ▼
+4. Записать согласие в backend → перейти на Feed (лента)
+   Экран больше НИКОГДА не показывается этому пользователю
+```
+
+#### 💾 Backend / База данных
+
+В таблицу `legal_consents_log` записать:
+
+| Поле | Значение |
+|---|---|
+| `user_id` | ID пользователя |
+| `consent_type` | `privacy_defaults_acknowledged` |
+| `consent_version` | `1.0` (версия текста) |
+| `consented_at` | Timestamp (UTC) |
+| `ip_address` | IP пользователя (для GDPR proof) |
+
+---
+
+### 🟢 ПОТОК 2: UGC Community Guidelines
+
+| | |
+|---|---|
+| **Цель** | Получить явное согласие на правила сообщества перед первой публикацией |
+| **Закон** | [Apple App Store §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [Google Play UGC Policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) |
+| **Триггер** | Показывается **1 раз** при **ПЕРВОЙ** попытке создать пост, комментарий, загрузить фото |
+| **Блокировка** | Пока согласие не дано — контент **НЕ публикуется**. Кнопка «Accept» заблокирована, пока не поставлена галочка |
+| **Важно** | Чекбокс **НЕ pre-checked** — пользователь должен сам поставить галочку (явное действие) |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme Community Guidelines | `bestme_community_guidelines_title` |
+| **Body intro** | Before publishing your first content, please review our rules. | `before_publishing_first_content_review_rules` |
+| **Prohibited 1** | • Child sexual abuse material (CSAM) | `prohibited_csam` |
+| **Prohibited 2** | • Hate speech and discrimination | `prohibited_hate_speech_discrimination` |
+| **Prohibited 3** | • Threats, bullying, and harassment | `prohibited_threats_bullying_harassment` |
+| **Prohibited 4** | • Violence and graphic content | `prohibited_violence_graphic_content` |
+| **Prohibited 5** | • Fraud and spam | `prohibited_fraud_spam` |
+| **Warning** | Violations will result in content removal and account termination. | `violations_removal_termination` |
+| **Links** | [Terms of Service] · [Community Guidelines] | `tos_and_community_guidelines` |
+| **Checkbox** | ☐ I agree to the Community Guidelines | `agree_to_community_guidelines` |
+| **Primary Button** | Accept and continue | `accept_and_continue` |
+| **Cancel Button** | Cancel | `cancel` |
+
+> **Важно для дизайнера:** Чекбокс должен быть **ПУСТЫМ** по умолчанию (☐, не ☑). Кнопка «Accept and continue» заблокирована (disabled/greyed out) пока чекбокс не отмечен.
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые нажимает «Создать пост» / «Комментировать» / «Загрузить фото»
+       │
+       ▼
+2. Показать модальное окно Community Guidelines
+   Кнопка «Accept and continue» — ЗАБЛОКИРОВАНА (disabled)
+       │
+       ├── Пользователь ставит галочку ☑ → кнопка «Accept and continue» активируется
+       │       │
+       │       └── Нажимает «Accept and continue» → записать согласие → разрешить публикацию
+       │
+       └── Пользователь нажимает «Cancel» → окно закрывается, контент НЕ публикуется
+```
+
+#### 💾 Backend / База данных
+
+В таблицу `legal_consents_log` записать:
+
+| Поле | Значение |
+|---|---|
+| `user_id` | ID пользователя |
+| `consent_type` | `community_guidelines_accepted` |
+| `consent_version` | `1.0` |
+| `consented_at` | Timestamp (UTC) |
+| `ip_address` | IP пользователя |
+
+---
+
+### 🔔 ПОТОК 3: Push Notifications Permission
+
+| | |
+|---|---|
+| **Цель** | Объяснить зачем нужны push-уведомления ПЕРЕД системным диалогом |
+| **Закон** | [Google Play User Data Policy](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) · [App Store Review Guidelines §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| **Триггер** | Показывается **ДО** системного диалога запроса разрешений. На этапе онбординга или при первой попытке отправить уведомление |
+| **Блокировка** | Экран можно **пропустить**, нажав «Not now» |
+| **Важно** | Должен быть в потоке использования, не только в Privacy Policy |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme wants to send you notifications | `notifications_permission_title` |
+| **Body intro** | We use push notifications to keep you updated on: | `notifications_permission_description` |
+| **Bullet 1** | • Messages from friends | `notifications_messages_from_friends` |
+| **Bullet 2** | • Important account security alerts | `notifications_security_alerts` |
+| **Bullet 3** | • Comments on your posts | `notifications_comments_on_posts` |
+| **Marketing note** | Marketing notifications are only sent with your explicit consent. | `marketing_notifications_consent` |
+| **Settings note** | You can turn them off at any time in Settings → Notifications. | `turn_off_notifications_in_settings` |
+| **Primary Button** | Continue | `continue` |
+| **Secondary Button** | Not now | `not_now` |
+
+#### ⚙️ Логика Frontend
+
+```
+1. Показать наш экран с объяснением (Prominent Disclosure)
+       │
+       ├── Пользователь нажимает «Continue»
+       │       │
+       │       ▼
+       │   Вызвать стандартное СИСТЕМНОЕ окно iOS/Android:
+       │   «"Bestme" Would Like to Send You Notifications: Allow / Don't Allow»
+       │       │
+       │       ├── Allow → push_notifications_enabled = true
+       │       └── Don't Allow → push_notifications_enabled = false
+       │
+       └── Пользователь нажимает «Not now»
+               │
+               ▼
+           Окно закрывается, системный запрос НЕ вызывается
+           (оставляем попытку на потом)
+```
+
+#### 💾 Backend / База данных
+
+> **НЕ нужно записывать в `legal_consents_log`.**
+> Запрос пушей регулируется на уровне ОС (iOS/Android хранит статус).
+
+Для бэкенда: в таблице пользователя (`users` или таблице настроек уведомлений) обновить:
+
+| Поле | Значение |
+|---|---|
+| `push_notifications_enabled` | `true` / `false` — по результату системного окна iOS/Android |
+
+---
+
+### 📷 ПОТОК 4: Camera Permission
+
+| | |
+|---|---|
+| **Цель** | Объяснить зачем нужен доступ к камере ПЕРЕД системным диалогом |
+| **Закон** | [Google Play User Data Policy — Prominent Disclosure](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) · [App Store Review Guidelines §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| **Триггер** | При **первой** попытке сделать фото/видео внутри приложения (аватарка, пост) |
+| **Блокировка** | Можно пропустить «Not now», но тогда действие (создание поста) прервётся |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme needs access to your camera | `camera_permission_title` |
+| **Body intro** | We use your camera so you can: | `camera_permission_description` |
+| **Bullet 1** | • Take photos and videos for your posts | `camera_permission_take_photos_videos_posts` |
+| **Bullet 2** | • Update your profile picture | `camera_permission_update_profile_picture` |
+| **Bullet 3** | • Capture moments to share with friends | `camera_permission_capture_moments_share_friends` |
+| **Settings note** | You can change this access at any time in your device settings. | `camera_permission_change_in_device_settings` |
+| **Primary Button** | Continue | `continue` |
+| **Secondary Button** | Not now | `not_now` |
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые нажимает «Сделать фото» / «Снять видео»
+       │
+       ▼
+2. Показать наш экран с объяснением (Prominent Disclosure)
+       │
+       ├── «Continue» → вызвать системное окно:
+       │   «"Bestme" Would Like to Access the Camera: Allow / Don't Allow»
+       │       │
+       │       ├── Allow → открыть камеру, продолжить
+       │       └── Don't Allow → вернуть на предыдущий экран
+       │
+       └── «Not now» → закрыть, вернуть на предыдущий экран, действие прервано
+```
+
+#### 💾 Backend / База данных
+
+> **НЕ нужно записывать в `legal_consents_log`.**
+> Доступ к камере контролируется на уровне ОС. Бэкенду не нужны юридические логи.
+
+---
+
+### 🖼️ ПОТОК 5: Photos (Gallery) Permission
+
+| | |
+|---|---|
+| **Цель** | Объяснить зачем нужен доступ к галерее ПЕРЕД системным диалогом |
+| **Закон** | [Google Play User Data Policy — Prominent Disclosure](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) · [App Store Review Guidelines §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| **Триггер** | При **первой** попытке выбрать фото из галереи телефона |
+| **Блокировка** | Можно пропустить «Not now», но тогда действие прервётся |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme needs access to your photos | `photos_permission_title` |
+| **Body intro** | We need access to your photo library so you can: | `photos_permission_description` |
+| **Bullet 1** | • Upload existing photos and videos to your profile | `photos_permission_upload_existing_to_profile` |
+| **Bullet 2** | • Share media in messages with your friends | `photos_permission_share_media_in_messages` |
+| **Bullet 3** | • Save photos from Bestme to your device | `photos_permission_save_photos_to_device` |
+| **Settings note** | You can change this access at any time in your device settings. | `photos_permission_change_in_device_settings` |
+| **Primary Button** | Continue | `continue` |
+| **Secondary Button** | Not now | `not_now` |
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые нажимает «Выбрать из галереи»
+       │
+       ▼
+2. Показать наш экран с объяснением (Prominent Disclosure)
+       │
+       ├── «Continue» → вызвать системное окно:
+       │   «"Bestme" Would Like to Access Your Photos: Allow / Don't Allow»
+       │       │
+       │       ├── Allow → открыть галерею, продолжить
+       │       └── Don't Allow → вернуть на предыдущий экран
+       │
+       └── «Not now» → закрыть, вернуть на предыдущий экран, действие прервано
+```
+
+#### 💾 Backend / База данных
+
+> **НЕ нужно записывать в `legal_consents_log`.**
+> Доступ к фото контролируется на уровне ОС.
+
+---
+
+### 🍎 ПОТОК 6: App Tracking Transparency (только iOS)
+
+| | |
+|---|---|
+| **Цель** | Получить разрешение на отслеживание (IDFA) на iOS |
+| **Закон** | [Apple App Store §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) · [App Tracking Transparency (ATT)](https://developer.apple.com/documentation/apptrackingtransparency) |
+| **Когда** | При первом запуске на iPhone/iPad с iOS 14.5+, если используются SDK аналитики/рекламы (Facebook Ads, Google Ads, Amplitude, Mixpanel и т.п.) |
+| **Реализация** | Системный iOS диалог через `NSUserTrackingUsageDescription` |
+| **Обязательность** | **Без этого диалога App Store НЕ пропустит приложение** |
+| **Блокировка** | Пользователь должен явно выбрать (Allow / Ask App Not to Track). Без ответа доступ к IDFA невозможен |
+
+#### 🖥️ Frontend тексты
+
+**Info.plist (обязательный ключ):**
+
+| Элемент | Текст (EN) | Ключ |
+|---|---|---|
+| `NSUserTrackingUsageDescription` | Bestme uses your data to improve feed personalization and in-app analytics. You can withdraw consent anytime in iPhone Settings → Bestme. | `data_usage_personalization_analytics` + `withdraw_consent_iphone_settings_bestme` |
+
+> iOS автоматически подставит этот текст в системный pop-up.
+
+**Soft prompt (наш собственный экран ПЕРЕД системным, рекомендуется для повышения % согласий):**
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Help us improve your Bestme experience | `help_improve_bestme_experience` |
+| **Body** | To provide you with more relevant content and analytics, we'll ask for permission to use app activity data. You're in control and can revoke this later in iPhone Settings. | `permission_use_app_activity_data` + `revoke_later_in_iphone_settings` |
+| **Primary Button** | OK | `ok` |
+| **Secondary Button** | Learn more | `learn_more` |
+
+#### ⚙️ Логика Frontend
+
+```
+1. Первый запуск приложения на iOS 14.5+
+       │
+       ▼
+2. (Опционально) Показать наш soft prompt
+       │
+       ├── «OK» → перейти к шагу 3
+       └── «Learn more» → показать подробности → потом к шагу 3
+              │
+              ▼
+3. Вызвать системный ATT диалог:
+   ATTrackingManager.requestTrackingAuthorization()
+       │
+       ├── .authorized → IDFA доступен, analytics_tracking = true
+       ├── .denied → IDFA НЕ доступен, analytics_tracking = false
+       └── .notDetermined → ещё не решил (ждём)
+```
+
+> **⚠️ ЗАПРЕЩЕНО** использовать IDFA без явного согласия. Это приводит к **блокировке приложения** в App Store.
+
+#### 💾 Backend / База данных
+
+> Хранить в базе этот выбор **НЕ обязательно** — iOS сама хранит статус.
+
+Для внутренней аналитики можно записать:
+
+| Поле | Значение |
+|---|---|
+| `analytics_enabled` | `true` / `false` — в таблице user preferences |
+
+---
+
+### 📱 ПОТОК 7: SMS Consent (TCPA)
+
+| | |
+|---|---|
+| **Цель** | Получить легальное согласие на отправку SMS |
+| **Закон** | [TCPA 47 U.S.C. §227(b)](https://www.law.cornell.edu/uscode/text/47/227) — штраф **$1 500** за КАЖДОЕ SMS без письменного согласия |
+| **Когда** | При добавлении / изменении номера телефона в Account Settings |
+| **Реализация** | Форма ввода номера с чекбоксом согласия |
+| **Важно** | Чекбокс **НЕ pre-checked** (явный opt-in) |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Input Title** | Phone number: +1 (XXX) XXX-XXXX | `phone_number` |
+| **Checkbox** | ☐ I agree to receive SMS from Bestme at this number. Message frequency: as needed (OTP, security, account). Standard SMS rates apply. Reply STOP to opt out. [SMS Communication Policy] | `agree_receive_sms_at_number` |
+| **Frequency** | Message frequency: as needed | `sms_frequency_as_needed` |
+| **Rates** | Standard SMS rates apply. | `standard_sms_rates_apply` |
+| **Opt-out** | Reply STOP to opt out. | `reply_stop_to_opt_out` |
+| **Policy link** | [SMS Communication Policy] | `sms_communication_policy` |
+| **Visibility note** | Your phone is NEVER visible to other users (phone_visibility = Only Me). | `phone_never_visible_to_other_users` |
+| **Save Button** | Save | `save` |
+| **Cancel Button** | Cancel | `cancel` |
+
+> **Важно для дизайнера:** Чекбокс должен быть **ПУСТЫМ** по умолчанию (☐, не ☑).
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь нажимает «Add phone» или «Edit» номер в Account Settings
+       │
+       ▼
+2. Показать форму ввода номера + чекбокс
+   Чекбокс = ПУСТОЙ по умолчанию
+       │
+       ├── Если пользователь МЕНЯЕТ существующий номер на НОВЫЙ:
+       │   → Чекбокс автоматически ОЧИЩАЕТСЯ (нужно новое согласие для нового номера)
+       │
+       ├── «Save» → отправить на сервер: { phone, sms_consent: true/false }
+       │
+       └── «Cancel» → закрыть, номер НЕ обновляется, старое согласие остаётся
+```
+
+#### 💾 Backend / База данных
+
+| Поле | Значение |
+|---|---|
+| `phone_number` | Новый номер |
+| `sms_consent` | `true` / `false` — привязан строго к ЭТОМУ номеру |
+| `sms_consent_at` | Timestamp (UTC) — точное время согласия |
+| `sms_consent_ip` | IP пользователя — для аудита TCPA |
+
+> **ВАЖНО:** Если номер изменился → старое согласие **больше не действует**. Новое согласие = для нового номера.
+> Для защиты от штрафов TCPA: вместе со статусом `true` перезаписывать timestamp + IP.
+
+---
+
+### 🔴 ПОТОК 8: Delete Account (GDPR Art. 17(2)) — 🚧 В РАЗРАБОТКЕ
+
+| | |
+|---|---|
+| **Цель** | Дать пользователю возможность удалить аккаунт с объяснением де-индексации |
+| **Закон** | [GDPR Art. 17(2)](https://gdpr-info.eu/art-17-gdpr/) — право на удаление + уведомление третьих лиц |
+| **Статус** | 🚧 В процессе разработки — тексты и логика будут добавлены позже |
+
+---
+
+### 📊 Сводная таблица: какие потоки хранить в `legal_consents_log`
+
+| Поток | Записывать в `legal_consents_log`? | Почему |
+|---|---|---|
+| **ПОТОК 1** GDPR Privacy Defaults | ✅ **ДА** | Нужно доказательство для GDPR (суд) |
+| **ПОТОК 2** UGC Community Guidelines | ✅ **ДА** | Нужно доказательство для Apple/Google и для модерации |
+| **ПОТОК 3** Push Notifications | ❌ НЕТ | Контролируется ОС (iOS/Android) |
+| **ПОТОК 4** Camera | ❌ НЕТ | Контролируется ОС |
+| **ПОТОК 5** Photos | ❌ НЕТ | Контролируется ОС |
+| **ПОТОК 6** ATT (iOS) | ❌ НЕТ | Контролируется iOS |
+| **ПОТОК 7** SMS Consent | ✅ **ДА** (в отдельной таблице) | TCPA требует доказательство согласия |
+
+---
+
+## 7. GeoIP — определение страны автоматически
 
 **Определяй страну автоматически по IP-адресу. Не нужно спрашивать пользователя.**
 
@@ -407,7 +860,7 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-## 7. Какие данные хранить, какие удалять
+## 8. Какие данные хранить, какие удалять
 
 | Данные | Хранить? | Причина | Закон |
 |---|---|---|---|
@@ -513,7 +966,7 @@ function authMiddleware(req, res, next) {
 
 ---
 
-## 8. Детальный разбор по каждой стране (с линками на законы)
+## 9. Детальный разбор по каждой стране (с линками на законы)
 
 > Подробности по каждой стране — если нужно разобраться детально.
 > Краткую сводку см. в [Секции 2 (простые страны)](#2--где-проще-всего-запуститься--страны-где-dob-достаточно) и [Секции 3 (блокировать)](#3--что-блокировать--страны-с-жёсткими-требованиями).
@@ -857,7 +1310,7 @@ function authMiddleware(req, res, next) {
 
 ---
 
-## 9. Чек-лист перед запуском
+## 10. Чек-лист перед запуском
 
 ### 🏪 ПУБЛИКАЦИЯ В МАГАЗИНЫ — обязательно
 
@@ -893,6 +1346,18 @@ function authMiddleware(req, res, next) {
 - [ ] Настройки приватности — **максимальные по умолчанию** (требование Калифорнии)
 - [ ] Реализовать **удаление аккаунта** — кнопка «Удалить мой аккаунт» (требование GDPR Art. 17 + Apple)
 - [ ] Реализовать **экспорт данных** — пользователь может скачать свои данные (требование GDPR Art. 15/20)
+
+### 📋 ЭКРАНЫ СОГЛАСИЙ (Consent Flows) — обязательно
+
+- [ ] **ПОТОК 1: Welcome Screen** — GDPR Privacy Defaults (показать после регистрации, ПЕРЕД лентой)
+- [ ] **ПОТОК 2: UGC Community Guidelines** — модальное окно перед первой публикацией (чекбокс НЕ pre-checked)
+- [ ] **ПОТОК 3: Push Notifications** — Prominent Disclosure перед системным запросом пушей
+- [ ] **ПОТОК 4: Camera Permission** — Prominent Disclosure перед доступом к камере
+- [ ] **ПОТОК 5: Photos Permission** — Prominent Disclosure перед доступом к галерее
+- [ ] **ПОТОК 6: ATT (iOS)** — NSUserTrackingUsageDescription в Info.plist + soft prompt
+- [ ] **ПОТОК 7: SMS Consent** — чекбокс в форме добавления телефона (НЕ pre-checked, TCPA)
+- [ ] Создать таблицу `legal_consents_log` для потоков 1, 2 (user_id, consent_type, version, timestamp, IP)
+- [ ] SMS consent: хранить `sms_consent`, `sms_consent_at`, `sms_consent_ip` привязанные к номеру
 
 ### 📄 ДОКУМЕНТЫ — обязательно
 
@@ -950,6 +1415,8 @@ function authMiddleware(req, res, next) {
 | 🇪🇺 ЕС | GDPR Art. 27 (представитель) | https://gdpr-info.eu/art-27-gdpr/ |
 | 🇪🇺 ЕС | GDPR Art. 33 (уведомление об утечке) | https://gdpr-info.eu/art-33-gdpr/ |
 | 🇪🇺 ЕС | DSA Art. 28 (защита несовершеннолетних) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | GDPR Art. 25 (data protection by design / by default) | https://gdpr-info.eu/art-25-gdpr/ |
+| 🇺🇸 США | TCPA 47 U.S.C. §227 (SMS consent) | https://www.law.cornell.edu/uscode/text/47/227 |
 | 🇫🇷 Франция | Loi 2024-449 | https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000049563651 |
 | 🇩🇪 Германия | JuSchG | https://www.gesetze-im-internet.de/juschg/ |
 | 🇬🇧 UK | Online Safety Act 2023 | https://www.legislation.gov.uk/ukpga/2023/50/contents |
@@ -985,9 +1452,16 @@ function authMiddleware(req, res, next) {
 | Что | Линк |
 |---|---|
 | Apple App Store Review Guidelines | https://developer.apple.com/app-store/review/guidelines/ |
+| Apple App Store §5.1.1 (Data Collection) | https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage |
+| Apple App Store §5.1.2(i) (ATT) | https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing |
+| Apple App Store §1.2 (UGC) | https://developer.apple.com/app-store/review/guidelines/#user-generated-content |
+| Apple ATT Framework | https://developer.apple.com/documentation/apptrackingtransparency |
+| Apple Account Deletion Requirement | https://developer.apple.com/support/offering-account-deletion-in-your-app/ |
 | Google Play Families Policy | https://support.google.com/googleplay/android-developer/answer/9893335?hl=en |
 | Google Play целевая аудитория | https://support.google.com/googleplay/android-developer/answer/9867159?hl=en |
 | Google Play Age Signals API | https://support.google.com/googleplay/android-developer/answer/16569691?hl=en |
+| Google Play User Data Policy | https://support.google.com/googleplay/android-developer/answer/10144311?hl=en |
+| Google Play UGC Policy | https://support.google.com/googleplay/android-developer/answer/9876937?hl=en |
 
 ### Провайдеры верификации (для Phase 2)
 
