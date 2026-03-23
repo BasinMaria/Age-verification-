@@ -24,7 +24,7 @@
   /*  Configuration                                                      */
   /* ------------------------------------------------------------------ */
 
-  var SESSION_KEY = "ageVerificationSession";
+  var SESSION_KEY = "av_ageVerificationSession";
   var SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
   /* ------------------------------------------------------------------ */
@@ -55,9 +55,15 @@
       return null;
     }
 
+    // Reject sessions created in the future (corrupt / tampered clock).
+    if (session.createdAt > Date.now()) {
+      clearSession();
+      return null;
+    }
+
     // Check expiry – remove stuck / stale sessions.
     var age = Date.now() - session.createdAt;
-    if (age > SESSION_TTL_MS || age < 0) {
+    if (age > SESSION_TTL_MS) {
       clearSession();
       return null;
     }
