@@ -5,6 +5,16 @@
 > **Модель:** Регистрация только для лиц 18+. Все до 18 — блокируются.
 > **Способы входа:** Google, Facebook, Apple Sign-In + собственная регистрация (email, имя, пароль, дата рождения)
 
+### 🌐 Языки
+
+| Что | Языки | Примечание |
+|---|---|---|
+| **Интерфейс приложения (UI)** | EN, RU, ES, FR, DE, AR, HE | Все экраны, кнопки, тексты, ключи переводов |
+| **Юридические документы** (Privacy Policy, Terms of Service) | EN + DE, FR, ES, IT, PT | Только документы. IT и PT — только для документов, НЕ для UI |
+| **Community Guidelines** | EN + DE, FR, ES, IT, PT | Юридический документ — те же языки |
+
+> **Важно:** IT (итальянский) и PT (португальский) — нужны **ТОЛЬКО** для юридических документов (Privacy Policy, Terms of Service, Community Guidelines). В интерфейс приложения (UI) на данном этапе эти языки **НЕ добавляются**.
+
 ---
 
 ## Содержание
@@ -15,11 +25,12 @@
 4. [🔓 План постепенной разблокировки](#4--план-постепенной-разблокировки)
 5. [Форма даты рождения — при регистрации и через соцсети](#5-форма-даты-рождения--при-регистрации-и-через-соцсети)
 6. [📋 Обязательные экраны согласий (Consent Flows)](#6--обязательные-экраны-согласий-consent-flows)
-7. [GeoIP — определение страны автоматически](#7-geoip--определение-страны-автоматически)
-8. [Какие данные хранить, какие удалять (+ про IP и сессии)](#8-какие-данные-хранить-какие-удалять)
-9. [Детальный разбор по каждой стране (с линками на законы)](#9-детальный-разбор-по-каждой-стране-с-линками-на-законы)
-10. [Чек-лист перед запуском](#10-чек-лист-перед-запуском)
-11. [Все ссылки на законы (одним списком)](#все-ссылки-на-законы-одним-списком)
+7. [🛡️ Модерация UGC — система жалоб и контент-модерации](#7--модерация-ugc--система-жалоб-и-контент-модерации)
+8. [GeoIP — определение страны автоматически](#8-geoip--определение-страны-автоматически)
+9. [Какие данные хранить, какие удалять (+ про IP и сессии)](#9-какие-данные-хранить-какие-удалять)
+10. [Детальный разбор по каждой стране (с линками на законы)](#10-детальный-разбор-по-каждой-стране-с-линками-на-законы)
+11. [📌 ПОЛНЫЙ СПИСОК ВСЕГО НЕОБХОДИМОГО СЕЙЧАС — Master Checklist](#11--полный-список-всего-необходимого-сейчас--master-checklist)
+12. [Все ссылки на законы (одним списком)](#все-ссылки-на-законы-одним-списком)
 
 ---
 
@@ -355,6 +366,23 @@ function checkCountryAccess(countryCode) {
 7. Выдать JWT токен → пользователь вошёл
 ```
 
+### 🖥️ DOB экран — тексты и ключи переводов (для соцсети и обычной регистрации)
+
+> Стиль как у Pinterest — простой экран с полем даты рождения (см. скриншот).
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Enter your birthdate | `enter_your_birthdate` |
+| **Body** | To help keep Bestme safe, we require your birthdate. Your birthdate won't be visible on your profile. | `birthdate_required_for_safety` |
+| **Input placeholder** | mm/dd/yyyy | `date_format_placeholder` |
+| **Hint** | Use your own birthday, even if this is a business account. | `use_own_birthday_hint` |
+| **Primary Button** | Add birthdate | `add_birthdate` |
+| **Error (< 18)** | Sorry, Bestme is only available for users 18 and older. | `sorry_18_plus_only` |
+| **Privacy note** | Your date of birth is used ONLY for age verification and is NOT stored. | `dob_not_stored_privacy_note` |
+
+> **Для дизайнера:** Формат даты зависит от локали пользователя (mm/dd/yyyy для US, dd/mm/yyyy для EU).
+> Экран блокирует навигацию — пользователь НЕ может закрыть экран или пропустить.
+
 ### Защита от обхода DOB-проверки
 
 | Проблема | Решение |
@@ -402,8 +430,11 @@ function checkCountryAccess(countryCode) {
        ├── Первый запуск на iOS 14.5+ (если есть аналитика/реклама) →
        │   ПОТОК 6: App Tracking Transparency (только iOS)
        │
-       └── Добавление/изменение номера телефона →
-           ПОТОК 7: SMS Consent
+       ├── Добавление/изменение номера телефона →
+       │   ПОТОК 7: SMS Consent
+       │
+       └── Веб-версия / сайт (если есть cookies) →
+           ПОТОК 8: Cookie Consent Banner
 ```
 
 ---
@@ -793,12 +824,64 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-### 🔴 ПОТОК 8: Delete Account (GDPR Art. 17(2)) — 🚧 В РАЗРАБОТКЕ
+### 🍪 ПОТОК 8: Cookie Consent Banner (ePrivacy / GDPR)
+
+| | |
+|---|---|
+| **Цель** | Получить согласие на использование cookies (аналитика, реклама) |
+| **Закон** | [ePrivacy Directive 2002/58/EC](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058) (ЕС) · [GDPR Art. 6/7](https://gdpr-info.eu/art-7-gdpr/) · [CNIL Guidelines](https://www.cnil.fr/en/cookies-and-other-tracking-devices) (Франция) |
+| **Когда** | При **первом** посещении web-версии / сайта приложения. Для мобильного приложения — при наличии WebView с куками или SDK аналитики на веб-ресурсах |
+| **Блокировка** | Пользователь может отказаться (нажать «Reject non-essential»). Обязательные (strictly necessary) куки работают без согласия |
+| **Важно** | **НЕ** pre-checked. По умолчанию выбрано «Only essential cookies». ЕС требует **opt-in**, не opt-out |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | We use cookies | `cookie_consent_title` |
+| **Body** | Bestme uses cookies to improve your experience. Essential cookies are required for the app to work. Analytics and advertising cookies are optional. | `cookie_consent_description` |
+| **Essential label** | ✅ Essential cookies (always active) | `cookie_essential_always_active` |
+| **Analytics label** | ☐ Analytics cookies | `cookie_analytics` |
+| **Advertising label** | ☐ Advertising cookies | `cookie_advertising` |
+| **Primary Button** | Accept all | `cookie_accept_all` |
+| **Secondary Button** | Accept essential only | `cookie_accept_essential_only` |
+| **Tertiary link** | Cookie settings | `cookie_settings` |
+| **Privacy link** | [Privacy Policy] | `privacy_policy_link` |
+
+> **Для дизайнера:** По умолчанию Analytics и Advertising = **ВЫКЛЮЧЕНЫ** (☐). Только Essential = включён всегда и нельзя отключить. Это требование ЕС (opt-in, не opt-out).
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые открывает веб-версию / сайт
+       │
+       ▼
+2. Показать Cookie Banner внизу экрана
+   Essential cookies = ON (нельзя отключить)
+   Analytics = OFF по умолчанию
+   Advertising = OFF по умолчанию
+       │
+       ├── «Accept all» → включить все cookies, закрыть баннер
+       │
+       ├── «Accept essential only» → только essential, закрыть баннер
+       │
+       └── «Cookie settings» → показать детальные настройки с toggle для каждого типа
+```
+
+#### 💾 Backend / База данных
+
+> Cookie preferences **НЕ нужно** записывать в `legal_consents_log`.
+> Хранить cookie consent preference в `localStorage` / cookie самого браузера.
+> Для мобильного приложения: если нет WebView с cookies — этот баннер **НЕ нужен** (SDK-аналитика регулируется через ПОТОК 6 ATT на iOS и через Play consent на Android).
+
+---
+
+### 🔴 ПОТОК 9: Delete Account (GDPR Art. 17(2)) — 🚧 В РАЗРАБОТКЕ
 
 | | |
 |---|---|
 | **Цель** | Дать пользователю возможность удалить аккаунт с объяснением де-индексации |
-| **Закон** | [GDPR Art. 17(2)](https://gdpr-info.eu/art-17-gdpr/) — право на удаление + уведомление третьих лиц |
+| **Закон** | [GDPR Art. 17(2)](https://gdpr-info.eu/art-17-gdpr/) — право на удаление + уведомление третьих лиц · [Apple Account Deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/) |
 | **Статус** | 🚧 В процессе разработки — тексты и логика будут добавлены позже |
 
 ---
@@ -814,10 +897,66 @@ function checkCountryAccess(countryCode) {
 | **ПОТОК 5** Photos | ❌ НЕТ | Контролируется ОС |
 | **ПОТОК 6** ATT (iOS) | ❌ НЕТ | Контролируется iOS |
 | **ПОТОК 7** SMS Consent | ✅ **ДА** (в отдельной таблице) | TCPA требует доказательство согласия |
+| **ПОТОК 8** Cookie Consent | ❌ НЕТ | Хранится в localStorage/cookie браузера |
 
 ---
 
-## 7. GeoIP — определение страны автоматически
+## 7. 🛡️ Модерация UGC — система жалоб и контент-модерации
+
+> **ОБЯЗАТЕЛЬНО для публикации в App Store и Google Play.**
+> Без модерации UGC — **отказ в публикации**.
+> Законы: [Apple App Store §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [Google Play UGC Policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) · [DSA Art. 16](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) (ЕС)
+
+### Что ОБЯЗАТЕЛЬНО реализовать
+
+| # | Требование | Закон / Правило | Что делать | Линк |
+|---|---|---|---|---|
+| 1 | **Кнопка «Пожаловаться»** (Report) на каждом посте/комментарии/профиле | Apple §1.2, Google UGC, DSA Art. 16 | Кнопка → выбор причины → отправка на сервер | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) |
+| 2 | **Блокировка пользователей** (Block user) | Apple §1.2, Google UGC | Пользователь может заблокировать другого → контент скрыт | [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) |
+| 3 | **Контент-модерация** (удаление контента) | Apple §1.2, Google UGC | Модераторы / автоматика удаляют нарушающий контент | — |
+| 4 | **Community Guidelines** (правила сообщества) | Apple §1.2, Google UGC, DSA Art. 14 | Опубликовать правила + показать при первой публикации (ПОТОК 2) | [DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) |
+| 5 | **Механизм обжалования** (Appeal) | DSA Art. 20 (ЕС) | Пользователь может оспорить удаление контента | [DSA Art. 20](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) |
+| 6 | **Уведомление о результате жалобы** | DSA Art. 17 (ЕС) | Сообщить заявителю о результате рассмотрения | [DSA Art. 17](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) |
+
+### 🖥️ Frontend тексты и ключи переводов — Report
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Report button** | Report | `report_button` |
+| **Report title** | Report this content | `report_this_content` |
+| **Reason: Spam** | Spam or misleading | `report_reason_spam` |
+| **Reason: Hate** | Hate speech or discrimination | `report_reason_hate` |
+| **Reason: Violence** | Violence or threats | `report_reason_violence` |
+| **Reason: CSAM** | Child exploitation (CSAM) | `report_reason_csam` |
+| **Reason: Harassment** | Bullying or harassment | `report_reason_harassment` |
+| **Reason: Nudity** | Nudity or sexual content | `report_reason_nudity` |
+| **Reason: Fraud** | Fraud or scam | `report_reason_fraud` |
+| **Reason: Other** | Other | `report_reason_other` |
+| **Submit button** | Submit report | `submit_report` |
+| **Confirmation** | Thank you. We will review this report within 24 hours. | `report_submitted_confirmation` |
+
+### 🖥️ Frontend тексты и ключи переводов — Block User
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Block button** | Block user | `block_user_button` |
+| **Confirm** | Block @{username}? They won't be able to see your profile or contact you. | `block_user_confirm` |
+| **Blocked** | You have blocked @{username}. | `user_blocked_confirmation` |
+| **Unblock** | Unblock | `unblock_button` |
+
+### 🖥️ Frontend тексты и ключи переводов — Content Removal Notice
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Notice title** | Content removed | `content_removed_title` |
+| **Notice body** | Your content was removed for violating our Community Guidelines: {reason}. | `content_removed_reason` |
+| **Appeal link** | If you believe this was a mistake, you can [appeal this decision]. | `content_removed_appeal` |
+| **Appeal button** | Appeal | `appeal_button` |
+| **Appeal submitted** | Your appeal has been submitted. We will review it within 48 hours. | `appeal_submitted_confirmation` |
+
+---
+
+## 8. GeoIP — определение страны автоматически
 
 **Определяй страну автоматически по IP-адресу. Не нужно спрашивать пользователя.**
 
@@ -860,7 +999,7 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-## 8. Какие данные хранить, какие удалять
+## 9. Какие данные хранить, какие удалять
 
 | Данные | Хранить? | Причина | Закон |
 |---|---|---|---|
@@ -966,7 +1105,7 @@ function authMiddleware(req, res, next) {
 
 ---
 
-## 9. Детальный разбор по каждой стране (с линками на законы)
+## 10. Детальный разбор по каждой стране (с линками на законы)
 
 > Подробности по каждой стране — если нужно разобраться детально.
 > Краткую сводку см. в [Секции 2 (простые страны)](#2--где-проще-всего-запуститься--страны-где-dob-достаточно) и [Секции 3 (блокировать)](#3--что-блокировать--страны-с-жёсткими-требованиями).
@@ -1310,64 +1449,184 @@ function authMiddleware(req, res, next) {
 
 ---
 
-## 10. Чек-лист перед запуском
+## 11. 📌 ПОЛНЫЙ СПИСОК ВСЕГО НЕОБХОДИМОГО СЕЙЧАС — Master Checklist
 
-### 🏪 ПУБЛИКАЦИЯ В МАГАЗИНЫ — обязательно
+> **Это ЕДИНЫЙ ПОЛНЫЙ список АБСОЛЮТНО ВСЕГО, что нужно сделать для запуска.**
+> Включает: публикацию в магазины, техническую реализацию, все экраны согласий, модерацию, документы, переводы.
+> Всё что здесь покрыто → работает в ОТКРЫТЫХ странах (США, Канада, ЕС 27 стран, Япония, Израиль, Индия, СНГ + все остальные кроме 9 заблокированных).
+
+---
+
+### 🅰️ ПУБЛИКАЦИЯ В МАГАЗИНЫ
 
 #### Apple App Store
-- [ ] Заполнить **опросник рейтинга** (Content Descriptions) в App Store Connect
-- [ ] Получить рейтинг **17+** или **18+**
-- [ ] **НЕ** ставить в категорию Kids
-- [ ] Добавить **Privacy Policy** ссылку в App Store Connect
-- [ ] Реализовать **модерацию UGC**: кнопка «пожаловаться» + блокировка юзеров
-- [ ] Реализовать **механизм проверки возраста** (DOB форма достаточно)
+
+| # | Что | Закон / Правило | Статус |
+|---|---|---|---|
+| 1 | Заполнить **опросник рейтинга** (Content Descriptions) | [Apple §2.3.6](https://developer.apple.com/app-store/review/guidelines/#legal) | ☐ |
+| 2 | Получить рейтинг **17+ или 18+** | [Apple §2.3.6](https://developer.apple.com/app-store/review/guidelines/#legal) | ☐ |
+| 3 | **НЕ** ставить в категорию Kids | [Apple §1.3](https://developer.apple.com/app-store/review/guidelines/) | ☐ |
+| 4 | **Privacy Policy** ссылка в App Store Connect | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) | ☐ |
+| 5 | Реализовать **модерацию UGC**: Report + Block | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) | ☐ |
+| 6 | Реализовать **DOB форму** проверки возраста | [Apple §1.1](https://developer.apple.com/app-store/review/guidelines/) | ☐ |
+| 7 | **NSUserTrackingUsageDescription** в Info.plist | [Apple §5.1.2(i) ATT](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) | ☐ |
+| 8 | Реализовать **удаление аккаунта** | [Apple Account Deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/) | ☐ |
 
 #### Google Play
-- [ ] Указать **целевую аудиторию 18+** в Play Console
-- [ ] Заполнить **опросник Content Rating** (IARC) → получить рейтинг 18+
-- [ ] Включить **«Restrict Declared Minors»**
-- [ ] **НЕ** включать Families Policy / Designed for Families
-- [ ] Добавить **Privacy Policy** ссылку в Play Console
-- [ ] Заполнить **Data Safety Section**
-- [ ] Реализовать **модерацию UGC**: кнопка «пожаловаться» + блокировка юзеров
-- [ ] Реализовать **механизм проверки возраста** (DOB форма достаточно)
 
-### 🛠 ТЕХНИЧЕСКАЯ РЕАЛИЗАЦИЯ — обязательно
+| # | Что | Закон / Правило | Статус |
+|---|---|---|---|
+| 1 | Указать **целевую аудиторию 18+** | [Play Console](https://support.google.com/googleplay/android-developer/answer/9867159?hl=en) | ☐ |
+| 2 | Заполнить **Content Rating** (IARC) → 18+ | [IARC](https://support.google.com/googleplay/android-developer/answer/188189?hl=en) | ☐ |
+| 3 | Включить **«Restrict Declared Minors»** | [Google Families](https://support.google.com/googleplay/android-developer/answer/9893335?hl=en) | ☐ |
+| 4 | **НЕ** включать Families / Designed for Families | [Google Families](https://support.google.com/googleplay/android-developer/answer/9893335?hl=en) | ☐ |
+| 5 | **Privacy Policy** ссылка в Play Console | [Play Console](https://support.google.com/googleplay/android-developer/answer/9859455?hl=en) | ☐ |
+| 6 | Заполнить **Data Safety Section** | [Data Safety](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en) | ☐ |
+| 7 | Реализовать **модерацию UGC**: Report + Block | [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) | ☐ |
+| 8 | Реализовать **DOB форму** проверки возраста | — | ☐ |
 
-- [ ] Добавить **поле DOB** в собственную форму регистрации
-- [ ] Добавить **экран DOB** после входа через Google / Facebook / Apple (ВСЕГДА показывать, даже если соцсеть вернула birthday)
-- [ ] Реализовать **GeoIP** для определения страны (Cloudflare / MaxMind)
-- [ ] Реализовать **блокировку стран**: GB, AU, BR, CN, KR, MY, RU, BY, TM
-- [ ] Реализовать расчёт возраста → если < 18 → **блок**
-- [ ] **Удалять DOB** сразу после расчёта (в той же транзакции)
-- [ ] Хранить только: `age_bracket` + `country`
-- [ ] **НЕ** хранить IP-адрес после GeoIP
-- [ ] DOB не попадает в логи, аналитику, бэкапы
-- [ ] Настройки приватности — **максимальные по умолчанию** (требование Калифорнии)
-- [ ] Реализовать **удаление аккаунта** — кнопка «Удалить мой аккаунт» (требование GDPR Art. 17 + Apple)
-- [ ] Реализовать **экспорт данных** — пользователь может скачать свои данные (требование GDPR Art. 15/20)
+---
 
-### 📋 ЭКРАНЫ СОГЛАСИЙ (Consent Flows) — обязательно
+### 🅱️ ПРОВЕРКА ВОЗРАСТА
 
-- [ ] **ПОТОК 1: Welcome Screen** — GDPR Privacy Defaults (показать после регистрации, ПЕРЕД лентой)
-- [ ] **ПОТОК 2: UGC Community Guidelines** — модальное окно перед первой публикацией (чекбокс НЕ pre-checked)
-- [ ] **ПОТОК 3: Push Notifications** — Prominent Disclosure перед системным запросом пушей
-- [ ] **ПОТОК 4: Camera Permission** — Prominent Disclosure перед доступом к камере
-- [ ] **ПОТОК 5: Photos Permission** — Prominent Disclosure перед доступом к галерее
-- [ ] **ПОТОК 6: ATT (iOS)** — NSUserTrackingUsageDescription в Info.plist + soft prompt
-- [ ] **ПОТОК 7: SMS Consent** — чекбокс в форме добавления телефона (НЕ pre-checked, TCPA)
-- [ ] Создать таблицу `legal_consents_log` для потоков 1, 2 (user_id, consent_type, version, timestamp, IP)
-- [ ] SMS consent: хранить `sms_consent`, `sms_consent_at`, `sms_consent_ip` привязанные к номеру
+| # | Что | Закон | Статус |
+|---|---|---|---|
+| 1 | Добавить **поле DOB** в форму регистрации (email) | Магазины + COPPA | ☐ |
+| 2 | Добавить **экран DOB** после входа через Google/Facebook/Apple (ВСЕГДА, как Pinterest) | Магазины + COPPA | ☐ |
+| 3 | Расчёт возраста → если < 18 → **блок** (НЕ создавать аккаунт) | [COPPA](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312) | ☐ |
+| 4 | **Удалять DOB** сразу после расчёта (в той же транзакции) | [GDPR Art. 5(1)(c)](https://gdpr-info.eu/art-5-gdpr/) | ☐ |
+| 5 | Хранить только: `age_bracket` + `country` | GDPR минимизация | ☐ |
+| 6 | DOB **НЕ попадает** в логи, аналитику, бэкапы | [GDPR Art. 5](https://gdpr-info.eu/art-5-gdpr/) | ☐ |
 
-### 📄 ДОКУМЕНТЫ — обязательно
+---
 
-- [ ] **Privacy Policy** на EN + DE + FR + ES + IT + PT:
-  - Описать сбор DOB (цель: проверка возраста, удаление сразу)
-  - Описать GeoIP (цель: определение юрисдикции)
-  - Указать правовое основание ([GDPR Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/) или (f))
-  - Описать права пользователей (удаление, доступ, исправление, перенос)
-  - Описать как подать запрос на удаление данных (email / кнопка в приложении)
-- [ ] **Terms of Service** — минимальный возраст 18+
+### 🅲️ GeoIP И БЛОКИРОВКА СТРАН
+
+| # | Что | Закон | Статус |
+|---|---|---|---|
+| 1 | Реализовать **GeoIP** определение страны (Cloudflare / MaxMind) | — | ☐ |
+| 2 | **Блокировка 9 стран**: GB, AU, BR, CN, KR, MY, RU, BY, TM | Законы этих стран | ☐ |
+| 3 | Показать заблокированным: «Service not available in your country» | — | ☐ |
+| 4 | **НЕ** хранить IP-адрес после GeoIP | [GDPR Recital 30](https://gdpr-info.eu/recitals/no-30/) | ☐ |
+
+---
+
+### 🅳️ ВСЕ ЭКРАНЫ СОГЛАСИЙ (9 потоков)
+
+| # | Поток | Триггер | Блокирует? | Чекбокс? | Записывать в БД? | Закон |
+|---|---|---|---|---|---|---|
+| 1 | **Welcome Screen** (GDPR Privacy Defaults) | После регистрации, ПЕРЕД лентой | ✅ ДА — нельзя пропустить | Нет | ✅ `legal_consents_log` | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) |
+| 2 | **UGC Community Guidelines** | Первая попытка создать контент | ✅ ДА — контент не публикуется | ☐ НЕ pre-checked | ✅ `legal_consents_log` | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) |
+| 3 | **Push Notifications** | Онбординг / первая попытка пуша | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) · [Google User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) |
+| 4 | **Camera Permission** | Первое фото/видео | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | Apple §5.1.1 · Google Prominent Disclosure |
+| 5 | **Photos Permission** | Первый выбор из галереи | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | Apple §5.1.1 · Google Prominent Disclosure |
+| 6 | **ATT (iOS)** | Первый запуск iOS 14.5+ | ✅ Системный диалог | Нет | ❌ (iOS хранит) | [Apple §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
+| 7 | **SMS Consent (TCPA)** | Добавление/изменение телефона | ✅ Нужно согласие | ☐ НЕ pre-checked | ✅ (отдельная таблица) | [TCPA §227(b)](https://www.law.cornell.edu/uscode/text/47/227) |
+| 8 | **Cookie Consent** | Первый визит на веб-сайт | ❌ Можно отказаться | ☐ НЕ pre-checked (analytics/ads) | ❌ (localStorage) | [ePrivacy 2002/58/EC](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058) · [GDPR Art. 7](https://gdpr-info.eu/art-7-gdpr/) |
+| 9 | **Delete Account** | В настройках (Settings) | — | — | 🚧 В разработке | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) · [Apple](https://developer.apple.com/support/offering-account-deletion-in-your-app/) |
+
+---
+
+### 🅴️ МОДЕРАЦИЯ UGC
+
+| # | Что | Закон | Статус |
+|---|---|---|---|
+| 1 | Кнопка **«Report»** на каждом посте/комментарии/профиле | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) · [DSA Art. 16](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | ☐ |
+| 2 | Выбор **причины жалобы** (CSAM, Hate, Violence, Spam, Other) | DSA Art. 16 | ☐ |
+| 3 | Кнопка **«Block user»** | Apple §1.2 · Google UGC | ☐ |
+| 4 | **Удаление контента** модераторами | Apple §1.2 · Google UGC | ☐ |
+| 5 | **Community Guidelines** опубликованы | Apple §1.2 · Google UGC · [DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | ☐ |
+| 6 | Механизм **обжалования** (Appeal) удаления контента | [DSA Art. 20](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) (ЕС) | ☐ |
+| 7 | **Уведомление** заявителю о результате жалобы | [DSA Art. 17](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) (ЕС) | ☐ |
+
+---
+
+### 🅵️ НАСТРОЙКИ ПРИВАТНОСТИ
+
+| # | Что | Закон | Статус |
+|---|---|---|---|
+| 1 | Профиль = **приватный по умолчанию** (для Калифорнии) | [CAADCA (AB 2273)](https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB2273) | ☐ |
+| 2 | Геолокация = **выключена по умолчанию** | CAADCA | ☐ |
+| 3 | Push-уведомления = **минимальные по умолчанию** | CAADCA | ☐ |
+| 4 | Email, телефон, дата рождения = **ВСЕГДА скрыты** от других | [GDPR Art. 25](https://gdpr-info.eu/art-25-gdpr/) | ☐ |
+| 5 | Кнопка **«Удалить аккаунт»** в настройках | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) · [Apple](https://developer.apple.com/support/offering-account-deletion-in-your-app/) | ☐ |
+| 6 | Кнопка **«Экспорт данных»** (скачать свои данные) | [GDPR Art. 15](https://gdpr-info.eu/art-15-gdpr/) / [Art. 20](https://gdpr-info.eu/art-20-gdpr/) | ☐ |
+
+---
+
+### 🅶️ ЮРИДИЧЕСКИЕ ДОКУМЕНТЫ
+
+| # | Документ | Языки | Закон | Статус |
+|---|---|---|---|---|
+| 1 | **Privacy Policy** | EN + DE, FR, ES, IT, PT | [GDPR Art. 13/14](https://gdpr-info.eu/art-13-gdpr/) · [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) | ☐ |
+| 2 | **Terms of Service** (18+ минимальный возраст) | EN + DE, FR, ES, IT, PT | Apple · Google | ☐ |
+| 3 | **Community Guidelines** | EN + DE, FR, ES, IT, PT | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | ☐ |
+| 4 | **SMS Communication Policy** | EN | [TCPA §227](https://www.law.cornell.edu/uscode/text/47/227) | ☐ |
+
+**Что описать в Privacy Policy:**
+- [ ] Сбор DOB (цель: проверка возраста, удаление сразу)
+- [ ] GeoIP (цель: определение юрисдикции)
+- [ ] Правовое основание: [GDPR Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/) или (f)
+- [ ] Cookies — какие и зачем (если используются)
+- [ ] Права пользователей: удаление, доступ, исправление, перенос данных
+- [ ] Как подать запрос на удаление (email / кнопка)
+- [ ] Третьи лица (аналитика, SDK) — перечислить
+
+---
+
+### 🅷️ ПЕРЕВОДЫ UI
+
+| # | Что | Языки | Статус |
+|---|---|---|---|
+| 1 | Все экраны приложения (UI) | EN, RU, ES, FR, DE, AR, HE | ☐ |
+| 2 | Все ключи переводов из Потоков 1-8 (Секция 6) | EN, RU, ES, FR, DE, AR, HE | ☐ |
+| 3 | Все ключи переводов модерации (Секция 7) | EN, RU, ES, FR, DE, AR, HE | ☐ |
+| 4 | DOB экран (social login) | EN, RU, ES, FR, DE, AR, HE | ☐ |
+| 5 | Экран блокировки страны | EN (+ RU для видимости) | ☐ |
+
+---
+
+### 🅸️ БАЗА ДАННЫХ — таблицы
+
+| # | Таблица / Поле | Для чего | Закон |
+|---|---|---|---|
+| 1 | `legal_consents_log` (user_id, consent_type, version, timestamp, IP) | ПОТОК 1 + ПОТОК 2 согласия | GDPR |
+| 2 | `users.push_notifications_enabled` (true/false) | Статус push-уведомлений | — |
+| 3 | `users.analytics_enabled` (true/false) | ATT выбор (iOS) | — |
+| 4 | `users.sms_consent` + `sms_consent_at` + `sms_consent_ip` | SMS согласие привязано к номеру | TCPA |
+| 5 | `users.age_bracket` ("18+") | Результат проверки DOB | — |
+| 6 | `users.country` (код страны) | GeoIP результат | — |
+
+---
+
+### 🅹️ ЧТО ПОКРЫТО ЭТИМ СПИСКОМ — какие страны работают
+
+```
+С ЭТИМ СПИСКОМ РАБОТАЮТ (без доработок):
+  ✅ 🇺🇸 США (все штаты, включая Калифорнию)
+  ✅ 🇨🇦 Канада
+  ✅ 🇪🇺 ЕС (все 27 стран: Германия, Франция, Испания, Италия, и т.д.)
+  ✅ 🇯🇵 Япония
+  ✅ 🇮🇱 Израиль
+  ✅ 🇮🇳 Индия
+  ✅ 🇺🇦 Украина, 🇰🇿 Казахстан, 🇬🇪 Грузия, 🇦🇲 Армения
+  ✅ 🇦🇿 Азербайджан, 🇲🇩 Молдова, 🇺🇿 Узбекистан
+  ✅ 🇰🇬 Кыргызстан, 🇹🇯 Таджикистан
+  ✅ Все остальные страны мира (кроме 9 заблокированных)
+
+ЗАБЛОКИРОВАНЫ (нужны доработки):
+  ⛔ 🇬🇧 UK — нужна Yoti/OneID
+  ⛔ 🇦🇺 Австралия — нужна biometric/eKYC
+  ⛔ 🇧🇷 Бразилия — нужна ID-верификация
+  ⛔ 🇨🇳 Китай — нужен нац. ID + китайский партнёр
+  ⛔ 🇰🇷 Юж. Корея — нужна i-PIN
+  ⛔ 🇲🇾 Малайзия — нужна eKYC
+  ⛔ 🇷🇺 Россия — нужны серверы в РФ
+  ⛔ 🇧🇾 Беларусь — гос. контроль
+  ⛔ 🇹🇲 Туркменистан — нет рынка
+```
+
+---
 
 ### 🔓 ПОСЛЕ ЗАПУСКА — по приоритету
 
@@ -1415,9 +1674,17 @@ function authMiddleware(req, res, next) {
 | 🇪🇺 ЕС | GDPR Art. 27 (представитель) | https://gdpr-info.eu/art-27-gdpr/ |
 | 🇪🇺 ЕС | GDPR Art. 33 (уведомление об утечке) | https://gdpr-info.eu/art-33-gdpr/ |
 | 🇪🇺 ЕС | DSA Art. 28 (защита несовершеннолетних) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | DSA Art. 14 (Terms of Service / Community Guidelines) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | DSA Art. 16 (notice and action mechanism — жалобы) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | DSA Art. 17 (уведомление о результате) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | DSA Art. 20 (internal complaint-handling / appeals) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| 🇪🇺 ЕС | ePrivacy Directive 2002/58/EC (cookies) | https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058 |
+| 🇪🇺 ЕС | GDPR Art. 7 (conditions for consent) | https://gdpr-info.eu/art-7-gdpr/ |
+| 🇪🇺 ЕС | GDPR Art. 13 (information to be provided — Privacy Policy) | https://gdpr-info.eu/art-13-gdpr/ |
 | 🇪🇺 ЕС | GDPR Art. 25 (data protection by design / by default) | https://gdpr-info.eu/art-25-gdpr/ |
 | 🇺🇸 США | TCPA 47 U.S.C. §227 (SMS consent) | https://www.law.cornell.edu/uscode/text/47/227 |
 | 🇫🇷 Франция | Loi 2024-449 | https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000049563651 |
+| 🇫🇷 Франция | CNIL Guidelines (cookies) | https://www.cnil.fr/en/cookies-and-other-tracking-devices |
 | 🇩🇪 Германия | JuSchG | https://www.gesetze-im-internet.de/juschg/ |
 | 🇬🇧 UK | Online Safety Act 2023 | https://www.legislation.gov.uk/ukpga/2023/50/contents |
 | 🇬🇧 UK | Ofcom руководство | https://www.ofcom.org.uk/online-safety/illegal-and-harmful-content/online-safety-regulatory-documents |
