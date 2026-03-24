@@ -296,9 +296,9 @@
 ### Для ЕС — Privacy Policy (уже входит в наши 10 пунктов)
 
 Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT, PT). Описать:
-1. Сбор DOB (цель: проверка возраста, удаление сразу)
+1. Сбор DOB (цели: проверка возраста 18+, персонализация контента, бонусы на День Рождения; хранение в зашифрованном виде)
 2. GeoIP (цель: определение юрисдикции)
-3. Правовое основание: [GDPR Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/)
+3. Правовое основание: [GDPR Art. 6(1)(a)](https://gdpr-info.eu/art-6-gdpr/) явное согласие + [Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/) исполнение договора
 4. Cookie consent banner (если есть куки)
 
 ### ❗ Почему могут ОТКАЗАТЬ в публикации или УДАЛИТЬ из магазина (Apple / Google) — ВСЕ возможные причины
@@ -364,9 +364,9 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
 |---|---|---|---|
 | Форма DOB | Поле даты рождения — ОБЯЗАТЕЛЬНО для всех способов входа | Магазины + COPPA | Фронтенд + бэкенд |
 | Проверка возраста | Если < 18 → БЛОК. НЕ создавать аккаунт. Anti-retry (email lock + device lock) | COPPA, GDPR Art. 8 | Бэкенд |
-| Удаление DOB | Дата рождения УДАЛЯЕТСЯ сразу после расчёта. Хранить только `age_bracket: "18+"` | GDPR Art. 5(1)(c) минимизация | Бэкенд |
+| Хранение DOB | Дата рождения **СОХРАНЯЕТСЯ в зашифрованном виде** (encryption at rest). Цели: 1) проверка возраста 18+, 2) бонусы/подарки на День Рождения, 3) персонализация контента по возрастной группе. Правовое основание: явное согласие + исполнение договора (GDPR Art. 6(1)(a) + (b)) | GDPR Art. 5(1)(c) + Art. 32 (безопасность) | Бэкенд |
 | Согласие с Terms + Privacy | Чекбокс «I agree to Terms of Service and Privacy Policy» при регистрации | GDPR Art. 7, контрактное основание | Фронтенд |
-| Создание аккаунта | Записать: email, name, age_bracket, country. НЕ записывать: DOB, IP | GDPR | Бэкенд |
+| Создание аккаунта | Записать: email, name, **DOB (зашифрованная)**, age_bracket, country. НЕ записывать: IP | GDPR | Бэкенд |
 
 #### Этап 3: ПЕРВЫЙ ВХОД (онбординг)
 
@@ -586,8 +586,9 @@ function checkCountryAccess(countryCode) {
    │                                     │
    │  [ДД] / [ММ] / [ГГГГ]              │
    │                                     │
-   │  Дата используется ТОЛЬКО для       │
-   │  проверки возраста и НЕ сохраняется │
+   │  Дата используется для проверки      │
+   │  возраста, персонализации            │
+   │  и бонусов на День Рождения 🎁      │
    │                                     │
    │         [ Продолжить ]              │
    └─────────────────────────────────────┘
@@ -598,8 +599,8 @@ function checkCountryAccess(countryCode) {
    └── >= 18 → Продолжить регистрацию
        │
        ▼
-6. Сохранить в базу: { email, name, age_bracket: "18+", country: "US" }
-   УДАЛИТЬ дату рождения (НЕ сохранять!)
+6. Сохранить в базу: { email, name, dob_encrypted: "AES(1990-05-15)", age_bracket: "18+", country: "US" }
+   DOB хранится в ЗАШИФРОВАННОМ виде (encryption at rest, GDPR Art. 32)
        │
        ▼
 7. Выдать JWT токен → пользователь вошёл
@@ -617,10 +618,25 @@ function checkCountryAccess(countryCode) {
 | **Hint** | Use your own birthday, even if this is a business account. | `use_own_birthday_hint` |
 | **Primary Button** | Add birthdate | `add_birthdate` |
 | **Error (< 18)** | Sorry, Bestme is only available for users 18 and older. | `sorry_18_plus_only` |
-| **Privacy note** | Your date of birth is used ONLY for age verification and is NOT stored. | `dob_not_stored_privacy_note` |
+| **Privacy note** | Your date of birth is used for age verification (18+), feed personalization, and birthday bonuses! 🎁 | `dob_usage_privacy_note` |
 
 > **Для дизайнера:** Формат даты зависит от локали пользователя (mm/dd/yyyy для US, dd/mm/yyyy для EU).
 > Экран блокирует навигацию — пользователь НЕ может закрыть экран или пропустить.
+
+#### 🎁 Microcopy под полем DOB — обязательный поясняющий текст (GDPR Art. 13)
+
+> **Для UI/UX:** Прямо под полем ввода Даты Рождения на экране регистрации нужен маленький серый поясняющий текст.
+> По закону ЕС пользователь должен понимать зачем он отдаёт данные, **до** того как нажмёт кнопку.
+
+| Язык | Текст (microcopy под полем DOB) | Ключ перевода |
+|---|---|---|
+| 🇬🇧 EN | We use your date of birth for age verification (18+), feed personalization, and birthday bonuses! 🎁 | `dob_microcopy` |
+| 🇷🇺 RU | Мы используем вашу дату рождения для проверки возраста (18+), персонализации ленты и начисления бонусов в ваш праздник! 🎁 | `dob_microcopy` |
+| 🇪🇸 ES | Usamos tu fecha de nacimiento para verificar tu edad (18+), personalizar tu feed y darte bonos en tu cumpleaños! 🎁 | `dob_microcopy` |
+| 🇫🇷 FR | Nous utilisons votre date de naissance pour vérifier votre âge (18+), personnaliser votre fil et vous offrir des bonus le jour de votre anniversaire ! 🎁 | `dob_microcopy` |
+| 🇩🇪 DE | Wir verwenden dein Geburtsdatum zur Altersverifizierung (18+), Feed-Personalisierung und Geburtstags-Boni! 🎁 | `dob_microcopy` |
+| 🇸🇦 AR | نستخدم تاريخ ميلادك للتحقق من العمر (18+) وتخصيص المحتوى ومنحك مكافآت في عيد ميلادك! 🎁 | `dob_microcopy` |
+| 🇮🇱 HE | אנחנו משתמשים בתאריך הלידה שלך לאימות גיל (18+), התאמה אישית של הפיד ובונוסים ביום ההולדת! 🎁 | `dob_microcopy` |
 
 ### Защита от обхода DOB-проверки
 
@@ -1307,10 +1323,65 @@ function checkCountryAccess(countryCode) {
 
 | Данные | Хранить? | Причина | Закон |
 |---|---|---|---|
-| **Дата рождения** | ❌ **УДАЛИТЬ СРАЗУ** | Минимизация данных | [GDPR Art. 5(1)(c)](https://gdpr-info.eu/art-5-gdpr/), [COPPA §312.7](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312/section-312.7) |
-| **Возрастная группа** (`18+` / `under18`) | ✅ Да | Контроль доступа | — |
+| **Дата рождения** | ✅ **ХРАНИТЬ ЗАШИФРОВАННОЙ** | Цели: 1) проверка возраста 18+, 2) персонализация контента по возрастной группе, 3) бонусы/поздравления в День Рождения. **Encryption at rest** (AES-256). Правовое основание: согласие Art. 6(1)(a) + договор Art. 6(1)(b) | [GDPR Art. 32](https://gdpr-info.eu/art-32-gdpr/), [Art. 6](https://gdpr-info.eu/art-6-gdpr/) |
+| **Возрастная группа** (`18+` / `under18`) | ✅ Да | Контроль доступа (быстрый доступ без расшифровки DOB) | — |
 | **Страна** (код) | ✅ Да | Определение юрисдикции | — |
 | **IP-адрес** | ❌ **НЕ ХРАНИТЬ** после GeoIP | IP = персональные данные | [GDPR Recital 30](https://gdpr-info.eu/recitals/no-30/) |
+
+### 🔐 Хранение DOB — бизнес-решение и техническая защита
+
+> **Почему мы храним полную дату рождения (а не удаляем сразу):**
+> BestMe — это wellbeing-платформа с бонусной системой. Мы хотим:
+> 1. **Поздравлять** пользователей с Днём Рождения и дарить бонусные баллы 🎁
+> 2. **Персонализировать** контент под возрастную группу пользователя
+> 3. Проверять возраст (18+) при регистрации
+
+> **Это абсолютно законно по GDPR**, если выполнить 3 условия:
+
+| # | Условие | Где описать | Что сделать |
+|---|---|---|---|
+| 1 | **Прямо указать цели** сбора DOB | Privacy Policy, раздел «Какие данные мы собираем» | Добавить абзац: «Мы собираем полную дату рождения для: 1) проверки возраста 18+, 2) персонализации контента, 3) начисления бонусов в День Рождения» |
+| 2 | **Показать пользователю** зачем это нужно | UI: microcopy под полем DOB при регистрации | Текст: «Мы используем вашу дату рождения для проверки возраста (18+), персонализации ленты и начисления бонусов в ваш праздник! 🎁» |
+| 3 | **Зашифровать** DOB в базе данных | Backend: encryption at rest | Поле `dob_encrypted` — AES-256. При утечке базы злоумышленники НЕ получат открытые даты рождения |
+
+#### 📄 Готовый текст для Privacy Policy — раздел «Date of Birth»
+
+> **Скопировать в Privacy Policy** (раздел «Data Collection & Purposes»):
+
+```
+Date of Birth (DOB)
+
+We collect your full date of birth for the following purposes:
+
+1. Age verification — to ensure all users are 18 years or older, 
+   as required by applicable laws (COPPA, GDPR Art. 8, etc.).
+2. Content personalization — to tailor content and recommendations 
+   to your age group.
+3. Birthday bonuses — to provide you with special rewards, gifts, 
+   and congratulations on your birthday.
+
+Legal basis (GDPR): Your explicit consent (Art. 6(1)(a)) and 
+performance of our contract with you (Art. 6(1)(b) — Terms of Service).
+
+Security: Your date of birth is stored in encrypted form 
+(encryption at rest) in accordance with GDPR Art. 32. 
+In the event of a data breach, your date of birth cannot be 
+read in plain text.
+
+You may request deletion of your date of birth at any time by 
+deleting your account (GDPR Art. 17).
+```
+
+#### 🖥️ Backend — технические требования к хранению DOB
+
+| # | Требование | Детали | Закон |
+|---|---|---|---|
+| 1 | **Формат хранения** | `YYYY-MM-DD` (ISO 8601) | — |
+| 2 | **Шифрование (encryption at rest)** | Поле `dob_encrypted` — AES-256 или аналог. Ключ шифрования хранится **отдельно** от базы данных (Key Management Service / env variable, НЕ в коде) | [GDPR Art. 32](https://gdpr-info.eu/art-32-gdpr/) |
+| 3 | **DOB НЕ в логах** | Поле `date_of_birth` / `dob` исключить из серверных логов (не логировать тела запросов с DOB) | GDPR Art. 5 |
+| 4 | **Cron job — День Рождения** | Ежедневный скрипт: расшифровать DOB → найти пользователей где `MM-DD == сегодня` → начислить бонусные баллы → отправить Push-уведомление «С Днём Рождения! 🎉 Вам начислены бонусные баллы!» | Бизнес-логика |
+| 5 | **Удаление при удалении аккаунта** | Когда пользователь удаляет аккаунт → `dob_encrypted` удаляется вместе со всеми данными | GDPR Art. 17 |
+| 6 | **Data Safety (Google Play)** | В Data Safety Section указать: «Date of birth — collected, encrypted, used for age verification and personalization» | Google Play |
 
 ### ❓ «Если не хранить IP — как поддерживать сессию?»
 
@@ -1385,10 +1456,12 @@ function authMiddleware(req, res, next) {
 
 ### Важно
 
-- DOB НЕ должна попадать в логи, аналитику, бэкапы.
-- Расчёт возраста → запись `age_bracket` → удаление DOB — всё в одной транзакции.
-- Если у тебя серверные логи записывают тела запросов — убери DOB из логирования.
+- DOB хранится **ЗАШИФРОВАННОЙ** в базе данных (AES-256 или аналог, encryption at rest — GDPR Art. 32).
+- DOB НЕ должна попадать в логи, аналитику, бэкапы **в открытом виде**. В бэкапах — только в зашифрованном виде.
+- Если у тебя серверные логи записывают тела запросов — убери DOB из логирования (не логировать поле `date_of_birth`).
+- При утечке базы данных злоумышленники **НЕ должны** получить открытые даты рождения в связке с именами и email (Art. 32).
 - IP-адрес тоже не должен попадать в логи надолго — настрой ротацию логов (макс. 7 дней) или замаскируй IP в логах.
+- Ежедневный **cron job** проверяет у кого сегодня День Рождения → начисляет бонусные баллы + Push-уведомление с поздравлением.
 
 ### GDPR — права пользователей на удаление данных (обязательно для ЕС)
 
@@ -1420,7 +1493,7 @@ function authMiddleware(req, res, next) {
 
 | | |
 |---|---|
-| **Что делать** | DOB достаточно. Собирай дату рождения → блокируй < 18 → удаляй DOB сразу. |
+| **Что делать** | DOB достаточно. Собирай дату рождения → блокируй < 18 → храни DOB зашифрованной (для персонализации и бонусов). |
 | **Почему этого хватит** | COPPA применяется к сервисам «направленным на детей до 13» или имеющим «фактическое знание» о детях. Если ты 18+ и блокируешь всех < 18, COPPA на тебя НЕ распространяется. Но: если узнаешь что пользователь < 13 — обязана удалить его данные. |
 | **Закон** | **COPPA** — Children's Online Privacy Protection Act, 16 CFR Part 312 |
 | **Линк** | https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312 |
@@ -1442,7 +1515,7 @@ function authMiddleware(req, res, next) {
 | 1 | **Профиль приватный по умолчанию** | При регистрации: `profile_visibility = "private"`, НЕ `"public"`. Пользователь может сам изменить на public. | Закон требует «высокие настройки приватности по умолчанию» |
 | 2 | **Геолокация выключена по умолчанию** | НЕ запрашивать GPS при первом входе. Включать ТОЛЬКО если пользователь сам нажмёт «показать моё местоположение». | Закон запрещает отслеживать точную геолокацию без явного согласия |
 | 3 | **Нет таргетированной рекламы по умолчанию** | Если показываешь рекламу — показывай КОНТЕКСТНУЮ (по тематике), а НЕ по поведению/профилю пользователя. | Закон запрещает профилирование без согласия |
-| 4 | **Данные DOB — только для проверки возраста** | После проверки возраста → удалить DOB. Нельзя использовать DOB для рекомендаций, аналитики, рекламы. | Закон прямо запрещает использовать данные age estimation для других целей |
+| 4 | **Данные DOB — с явным согласием** | DOB хранится зашифрованной. Пользователь **явно соглашается** на 3 цели при регистрации (microcopy под полем DOB): 1) проверка возраста, 2) персонализация, 3) бонусы на ДР. CAADCA запрещает использовать данные **age estimation** (технология определения возраста) для других целей — но DOB = **самодекларация с согласием**, а не age estimation. | Указать все цели сбора в UI + Privacy Policy |
 | 5 | **Уведомления — минимальные по умолчанию** | Включены только «критические» push (безопасность, пароль). Остальные — выключены, пользователь сам включает. | Часть «privacy by default» |
 
 | | |
@@ -1548,7 +1621,7 @@ function authMiddleware(req, res, next) {
 |---|---|---|---|
 | **Privacy Policy** — описать какие данные, зачем, как удаляем | Art. 13, 14 | Уже в наших 8 пунктах (пункт 6) | [Art. 13](https://gdpr-info.eu/art-13-gdpr/) |
 | **Правовое основание** для обработки данных | Art. 6 | Используем Art. 6(1)(b) — необходимость для исполнения договора (регистрация = договор) | [Art. 6](https://gdpr-info.eu/art-6-gdpr/) |
-| **Минимизация данных** — собирать только необходимое | Art. 5(1)(c) | Собираем DOB → проверяем возраст → УДАЛЯЕМ DOB. Храним только `age_bracket` | [Art. 5](https://gdpr-info.eu/art-5-gdpr/) |
+| **Минимизация данных** — собирать только необходимое | Art. 5(1)(c) | Собираем DOB → проверяем возраст → **храним DOB зашифрованной** (цели: возраст, бонусы на ДР, персонализация). Правовое основание: согласие Art. 6(1)(a) + договор Art. 6(1)(b). Шифрование: Art. 32 | [Art. 5](https://gdpr-info.eu/art-5-gdpr/) |
 | **Право на удаление** — пользователь может попросить удалить свои данные | Art. 17 | Реализовать кнопку «Удалить мой аккаунт» | [Art. 17](https://gdpr-info.eu/art-17-gdpr/) |
 | **Право на доступ** — пользователь может запросить копию своих данных | Art. 15 | Реализовать экспорт данных (JSON/CSV) | [Art. 15](https://gdpr-info.eu/art-15-gdpr/) |
 | **Право на перенос** — пользователь может забрать свои данные | Art. 20 | Тот же экспорт данных | [Art. 20](https://gdpr-info.eu/art-20-gdpr/) |
@@ -1846,9 +1919,10 @@ Email: [email]
 | 1 | Добавить **поле DOB** в форму регистрации (email) | Магазины + COPPA | ☐ |
 | 2 | Добавить **экран DOB** после входа через Google/Facebook/Apple (ВСЕГДА, как Pinterest) | Магазины + COPPA | ☐ |
 | 3 | Расчёт возраста → если < 18 → **блок** (НЕ создавать аккаунт) | [COPPA](https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312) | ☐ |
-| 4 | **Удалять DOB** сразу после расчёта (в той же транзакции) | [GDPR Art. 5(1)(c)](https://gdpr-info.eu/art-5-gdpr/) | ☐ |
-| 5 | Хранить только: `age_bracket` + `country` | GDPR минимизация | ☐ |
-| 6 | DOB **НЕ попадает** в логи, аналитику, бэкапы | [GDPR Art. 5](https://gdpr-info.eu/art-5-gdpr/) | ☐ |
+| 4 | **Хранить DOB зашифрованной** (AES-256, encryption at rest) | [GDPR Art. 32](https://gdpr-info.eu/art-32-gdpr/) | ☐ |
+| 5 | Хранить: `dob_encrypted` + `age_bracket` + `country` | GDPR Art. 5 + Art. 6(1)(a),(b) | ☐ |
+| 6 | DOB **НЕ попадает** в логи, аналитику в **открытом виде** | [GDPR Art. 5](https://gdpr-info.eu/art-5-gdpr/) | ☐ |
+| 7 | **Cron job**: ежедневная проверка дней рождения → бонусы + Push | Бизнес-логика | ☐ |
 
 ---
 
@@ -1919,7 +1993,7 @@ Email: [email]
 | 7 | **AI Disclaimer** в ToS (если используется AI-проверка контента) | EN + все языки ToS | [EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) | ☐ |
 
 **Что описать в Privacy Policy:**
-- [ ] Сбор DOB (цель: проверка возраста, удаление сразу)
+- [ ] Сбор DOB — **полная дата рождения** хранится зашифрованной (encryption at rest). Цели: 1) проверка возраста (18+), 2) персонализация контента по возрастной группе, 3) начисление бонусов/подарков в День Рождения. Правовое основание: явное согласие [GDPR Art. 6(1)(a)](https://gdpr-info.eu/art-6-gdpr/) + исполнение договора [Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/). Безопасность: [GDPR Art. 32](https://gdpr-info.eu/art-32-gdpr/)
 - [ ] GeoIP (цель: определение юрисдикции) — указать что GeoIP ≠ GPS геолокация
 - [ ] Правовое основание: [GDPR Art. 6(1)(b)](https://gdpr-info.eu/art-6-gdpr/) или (f)
 - [ ] Cookies — какие и зачем (если используются)
@@ -1961,8 +2035,9 @@ Email: [email]
 | 2 | `users.push_notifications_enabled` (true/false) | Статус push-уведомлений | — |
 | 3 | `users.analytics_enabled` (true/false) | ATT выбор (iOS) | — |
 | 4 | `users.sms_consent` + `sms_consent_at` + `sms_consent_ip` | SMS согласие привязано к номеру | TCPA |
-| 5 | `users.age_bracket` ("18+") | Результат проверки DOB | — |
-| 6 | `users.country` (код страны) | GeoIP результат | — |
+| 5 | `users.dob_encrypted` (зашифрованная дата YYYY-MM-DD) | Полная дата рождения (encryption at rest, AES-256). Цели: проверка возраста, бонусы на ДР, персонализация | GDPR Art. 32 |
+| 6 | `users.age_bracket` ("18+") | Результат проверки DOB (открытое поле, быстрый доступ) | — |
+| 7 | `users.country` (код страны) | GeoIP результат | — |
 
 ---
 
