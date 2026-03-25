@@ -519,7 +519,7 @@ function checkCountryAccess(countryCode) {
 | **Hint** | Use your own birthday, even if this is a business account. | `use_own_birthday_hint` |
 | **Primary Button** | Add birthdate | `add_birthdate` |
 | **Error (< 18)** | Sorry, Bestme is only available for users 18 and older. | `sorry_18_plus_only` |
-| **Privacy note** | Your date of birth is used for age verification (18+), feed personalization, and birthday bonuses! 🎁 | `dob_usage_privacy_note` |
+| **Privacy note** | Your date of birth is stored securely and is never shown on your profile. | `dob_usage_privacy_note` |
 
 > **Для дизайнера:** Формат даты зависит от локали пользователя (mm/dd/yyyy для US, dd/mm/yyyy для EU).
 > Экран блокирует навигацию — пользователь НЕ может закрыть экран или пропустить.
@@ -528,16 +528,12 @@ function checkCountryAccess(countryCode) {
 
 > **Для UI/UX:** Прямо под полем ввода Даты Рождения на экране регистрации нужен маленький серый поясняющий текст.
 > По закону ЕС пользователь должен понимать зачем он отдаёт данные, **до** того как нажмёт кнопку.
+> **⚠️ ВАЖНО (COPPA):** Текст НЕ ДОЛЖЕН подсказывать пользователю какой возраст нужен для прохода! Нейтральный ввод — без упоминания «18+» в microcopy. Иначе несовершеннолетний просто введёт нужную дату.
 
 | Язык | Текст (microcopy под полем DOB) | Ключ перевода |
 |---|---|---|
-| 🇬🇧 EN | We use your date of birth for age verification (18+), feed personalization, and birthday bonuses! 🎁 | `dob_microcopy` |
-| 🇷🇺 RU | Мы используем вашу дату рождения для проверки возраста (18+), персонализации ленты и начисления бонусов в ваш праздник! 🎁 | `dob_microcopy` |
-| 🇪🇸 ES | Usamos tu fecha de nacimiento para verificar tu edad (18+), personalizar tu feed y darte bonos en tu cumpleaños! 🎁 | `dob_microcopy` |
-| 🇫🇷 FR | Nous utilisons votre date de naissance pour vérifier votre âge (18+), personnaliser votre fil et vous offrir des bonus le jour de votre anniversaire ! 🎁 | `dob_microcopy` |
-| 🇩🇪 DE | Wir verwenden dein Geburtsdatum zur Altersverifizierung (18+), Feed-Personalisierung und Geburtstags-Boni! 🎁 | `dob_microcopy` |
-| 🇸🇦 AR | نستخدم تاريخ ميلادك للتحقق من العمر (18+) وتخصيص المحتوى ومنحك مكافآت في عيد ميلادك! 🎁 | `dob_microcopy` |
-| 🇮🇱 HE | אנחנו משתמשים בתאריך הלידה שלך לאימות גיל (18+), התאמה אישית של הפיד ובונוסים ביום ההולדת! 🎁 | `dob_microcopy` |
+| 🇬🇧 EN | Your date of birth is stored securely and is never shown on your profile. | `dob_microcopy` |
+| 🇷🇺 RU | Ваша дата рождения хранится в зашифрованном виде и никогда не отображается в профиле. | `dob_microcopy` |
 
 ### Защита от обхода DOB-проверки
 
@@ -610,8 +606,8 @@ function checkCountryAccess(countryCode) {
   │                │                             │
   ├─ Первый пост → ├─ Первое фото              ├─ iOS 14.5+:
   │  ПОТОК 2:      │  с камеры →                │  ПОТОК 6: ATT
-  │  UGC Guidelines│  ПОТОК 4: Camera            │  (если есть
-  │                │                             │   маркетинговые SDK)
+  │  UGC Guidelines│  ПОТОК 4: Camera            │  ❌ НЕ НУЖЕН для MVP
+  │                │                             │  (нет маркетинговых SDK)
   │                ├─ Первое голосовое →         │
   │                │  ПОТОК 4Б: Microphone       ├─ Веб-сайт:
   │                │                             │  ПОТОК 8: Cookie
@@ -621,9 +617,6 @@ function checkCountryAccess(countryCode) {
   │                ├─ Первый выбор из галереи →  │
   │                │  ПОТОК 5: Photos            │
   │                │                             │
-  │                ├─ Добавление телефона →       │
-  │                │  ПОТОК 7: SMS Consent        │
-  │                │                             │
   │                └─ Нажал «Push» или           │
   │                   онбординг →                │
   │                   ПОТОК 3: Push Notifications│
@@ -632,10 +625,8 @@ function checkCountryAccess(countryCode) {
       Settings → Account →                       │
       ПОТОК 9: Delete Account                    │
 
-  ⚠️ ПОТОК 6 (ATT) — показывается ПЕРВЫМ при входе
-     на iOS, ЕСЛИ в приложении есть маркетинговые SDK
-     (Facebook SDK, AppsFlyer и т.д.).
-     Показывается ПЕРЕД инициализацией этих SDK.
+  ⚠️ ПОТОК 7 (SMS Consent) — ❌ НЕ НУЖЕН для MVP
+     Bestme не отправляет SMS пользователям.
 ```
 
 ---
@@ -1075,148 +1066,58 @@ A: ✅ **ДА**. ToS = контракт (GDPR Art. 6(1)(b)). Принятие к
 
 ### 🍎 ПОТОК 6: App Tracking Transparency (только iOS)
 
+> **⚠️ ВЫВОД ДЛЯ MVP: ATT НЕ НУЖЕН.**
+> Bestme НЕ использует маркетинговые трекеры (Facebook SDK, AppsFlyer, Adjust, Branch).
+> Аналитика (Firebase / Apple Analytics) используется только для себя и данные НЕ передаются другим компаниям.
+> → ATT можно полностью пропустить в первой версии.
+> Когда маркетологи попросят прикрутить трекеры → программисты добавят ATT за пару дней в следующем обновлении.
+
 | | |
 |---|---|
-| **Цель** | Получить разрешение на отслеживание (IDFA) на iOS |
-| **Закон** | [Apple App Store §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) · [App Tracking Transparency (ATT)](https://developer.apple.com/documentation/apptrackingtransparency) |
-| **Платформа** | **Только iOS** (для Android эта задача не актуальна — у них свои механизмы) |
-| **Приоритет** | **Высокий** — блокер для релиза, если внедрены маркетинговые SDK |
-| **Когда** | При первом запуске на iPhone/iPad с iOS 14.5+, если используются SDK аналитики/рекламы (Facebook Ads, Google Ads, AppsFlyer, Adjust, Branch, Amplitude, Mixpanel и т.п.) |
-| **Реализация** | Паттерн Permission Priming (2 шага): наш экран объяснения → системный iOS диалог |
-| **Обязательность** | **Без этого диалога App Store НЕ пропустит приложение** (если используются трекинговые SDK) |
-| **Блокировка** | Пользователь должен явно выбрать (Allow / Ask App Not to Track). Без ответа доступ к IDFA невозможен |
-
-#### 🟢 Когда ATT НЕ нужен (можно вычеркнуть из ТЗ)
-
-ATT **не нужен**, если одновременно выполняются ВСЕ условия:
-- ❌ Нет рекламных баннеров внутри Bestme
-- ❌ Нет Facebook SDK / AppsFlyer / Adjust / Branch (маркетинговые трекеры)
-- ✅ Аналитика (Firebase / Apple Analytics) используется **только для себя** (сколько зарегистрировалось, сколько крашей) и данные **НЕ передаются** другим компаниям
-
-#### 🔴 Когда ATT ОБЯЗАТЕЛЕН (даже без рекламы в приложении)
-
-ATT **обязателен**, если хотя бы одно:
-- ✅ Встроен **Facebook SDK** (например, кнопка «Войти через Facebook» — SDK «втихаря» передаёт данные Meta)
-- ✅ Закупается реклама Bestme в Instagram/TikTok и используются трекеры (**AppsFlyer, Adjust, Branch**) для измерения эффективности рекламных кампаний
-- ✅ Любой SDK, который передаёт IDFA (Identifier for Advertisers) третьим лицам
-
-> **Вывод для MVP:** Если запускаете «чистую» версию без маркетинговых трекеров — ATT можно отложить. Когда маркетологи попросят прикрутить трекеры → программисты добавят ATT за пару дней в следующем обновлении.
-
-#### 🛑 Главные правила Apple (Anti-Reject)
-
-| # | Правило | Что запрещено | Что будет |
-|---|---|---|---|
-| 1 | **Запрет на блокировку (Gating)** | НЕ ИМЕЕМ ПРАВА закрывать доступ к приложению или урезать функционал (чат, посты, фото), если пользователь нажмёт «Запретить отслеживание» | **Отказ в публикации** |
-| 2 | **Запрет на подкуп (Incentivizing)** | НЕ ИМЕЕМ ПРАВА предлагать бонусы (например: «Дадим 100 очков рейтинга, если разрешишь отслеживание») | **Отказ в публикации** |
-| 3 | **Строгий тайминг** | Запрос ATT должен показываться **ДО** инициализации рекламных/аналитических SDK (Facebook SDK, AppsFlyer, Firebase Analytics с трекингом) | **Блокировка приложения** |
-
-#### 🖥️ Frontend — UI и Логика (Permission Priming)
-
-**Триггер:** Показ этого флоу один раз при **самом первом запуске** приложения после успешной регистрации/авторизации.
-
-**Шаг 1. Наш экран объяснения (Prominent Disclosure / Pre-prompt):**
-
-| Элемент | Текст (EN) | Ключ перевода |
-|---|---|---|
-| **Title** | Make Bestme better for you | `att_priming_title` |
-| **Body** | We use tracking technology to understand what you like and show you relevant content and personalized ads. This helps us keep the app free and improve your experience. We never sell your personal messages or photos. | `att_priming_body` |
-| **Primary Button** | Continue | `att_priming_continue` |
-
-> На этом экране **НЕ ДОЛЖНО** быть кнопок «Разрешить» или «Запретить» — только «Continue» к системному окну, либо крестик закрытия окна.
-
-**Шаг 2. Системный диалог ATT (System Prompt):**
-
-После нажатия [Continue] на Шаге 1, iOS-разработчик вызывает `requestTrackingAuthorization(completionHandler:)`. Поверх нашего экрана появляется стандартное системное окно Apple.
-
-**Info.plist (обязательный ключ):**
-
-| Элемент | Текст (EN) | Ключ |
-|---|---|---|
-| `NSUserTrackingUsageDescription` | This identifier will be used to deliver personalized ads to you and measure the effectiveness of our marketing campaigns. | `att_tracking_usage_description` |
-
-> iOS автоматически подставит этот текст в системный pop-up.
-
-#### ⚙️ Логика Frontend
-
-```
-1. Первый запуск приложения на iOS 14.5+ (после регистрации/авторизации)
-       │
-       ▼
-2. Проверить текущий статус: ATTrackingManager.trackingAuthorizationStatus
-       │
-       ├── .restricted или .denied (уже запрещено ранее или глобально в настройках)
-       │      └── ПРОПУСКАЕМ ВЕСЬ ФЛОУ → не показываем Шаг 1 и Шаг 2
-       │         └── Молча не запускаем трекинговые SDK
-       │         └── Пускаем пользователя в приложение
-       │
-       └── .notDetermined (ещё не спрашивали)
-              │
-              ▼
-3. Показать наш экран объяснения (Шаг 1 — Pre-prompt)
-       │
-       ├── «Continue» → перейти к Шагу 2
-       └── Крестик / свайп → перейти к Шагу 2
-              │
-              ▼
-4. Вызвать системный ATT диалог (Шаг 2):
-   ATTrackingManager.requestTrackingAuthorization()
-       │
-       ├── .authorized → IDFA доступен → РАЗРЕШАЕМ старт маркетинговых SDK
-       │      (Facebook, AppsFlyer и т.д.)
-       │
-       ├── .denied → IDFA НЕ доступен → БЛОКИРУЕМ передачу IDFA
-       │      Приложение продолжает работать как обычно (полный функционал!)
-       │
-       └── .notDetermined → ещё не решил (ждём)
-```
-
-> **⚠️ ЗАПРЕЩЕНО** использовать IDFA без явного согласия. Это приводит к **блокировке приложения** в App Store.
-
-#### 🔄 Альтернативный сценарий (Restricted / Denied в настройках ОС)
-
-У некоторых пользователей в настройках iPhone (**Настройки → Конфиденциальность → Отслеживание**) может быть глобально выключен тумблер «Разрешить приложениям запрашивать отслеживание». В этом случае iOS вообще не даст показать окно ATT.
-
-**Логика:** При запуске проверяем `trackingAuthorizationStatus`. Если `restricted` или `denied` → **ПРОПУСКАЕМ весь флоу**, молча не запускаем трекинговые SDK и пускаем пользователя в приложение. **НЕ нужно** просить пойти в настройки и включить трекинг.
-
-#### 💾 Backend / База данных
-
-> Хранить в базе этот выбор **НЕ обязательно** — iOS сама хранит статус.
-
-Для внутренней аналитики можно записать:
-
-| Поле | Значение |
-|---|---|
-| `analytics_enabled` | `true` / `false` — в таблице user preferences |
+| **Статус** | ❌ **НЕ НУЖЕН для MVP** — нет рекламных/трекинговых SDK |
+| **Когда понадобится** | Если добавите Facebook SDK, AppsFlyer, Adjust, или любой SDK передающий IDFA третьим лицам |
+| **Закон** | [Apple §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
+| **Реализация** | Паттерн Permission Priming (2 шага): наш экран объяснения → системный iOS диалог. Задача на 2-3 дня |
 
 ---
 
 ### 📱 ПОТОК 7: SMS Consent (TCPA)
 
+> **⚠️ ВАЖНО:** Bestme НЕ отправляет SMS пользователям (нет OTP по SMS, нет маркетинговых рассылок).
+> Номер телефона — это данные, которые **бизнес-пользователи** публикуют **добровольно** в своём бизнес-профиле для связи с клиентами (как визитка). Это их собственный выбор, а не наша рассылка.
+>
+> **Когда TCPA нужен:** TCPA защищает от НЕЖЕЛАТЕЛЬНЫХ звонков/SMS от КОМПАНИИ пользователю. Если Bestme не отправляет SMS → TCPA consent **НЕ нужен**.
+>
+> **Когда TCPA станет нужен:** Если в будущем добавите OTP-подтверждение по SMS, маркетинговые SMS-рассылки или push-уведомления через SMS — тогда нужно будет добавить чекбокс согласия.
+
 | | |
 |---|---|
-| **Цель** | Получить легальное согласие на отправку SMS |
+| **Статус** | ❌ **НЕ НУЖЕН для MVP** — Bestme не отправляет SMS пользователям |
 | **Закон** | [TCPA 47 U.S.C. §227(b)](https://www.law.cornell.edu/uscode/text/47/227) — штраф **$1 500** за КАЖДОЕ SMS без письменного согласия |
-| **Когда** | При добавлении / изменении номера телефона в Account Settings |
-| **Реализация** | Форма ввода номера с чекбоксом согласия |
-| **Важно** | Чекбокс **НЕ pre-checked** (явный opt-in) |
+| **Когда понадобится** | Если добавите: OTP по SMS, маркетинговые SMS, уведомления через SMS |
 
-#### 🖥️ Frontend тексты и ключи переводов
+#### Если в будущем добавите отправку SMS — вот готовая реализация:
+
+<details>
+<summary>🔽 Развернуть спецификацию SMS Consent (для будущего)</summary>
+
+**Когда:** При добавлении / изменении номера телефона в Account Settings.
+
+**Реализация:** Форма ввода номера с чекбоксом согласия. Чекбокс **НЕ pre-checked** (явный opt-in).
+
+##### 🖥️ Frontend тексты и ключи переводов
 
 | Элемент | Текст (EN) | Ключ перевода |
 |---|---|---|
 | **Input Title** | Phone number: +1 (XXX) XXX-XXXX | `phone_number` |
 | **Checkbox** | ☐ I agree to receive SMS from Bestme at this number. Message frequency: as needed (OTP, security, account). Standard SMS rates apply. Reply STOP to opt out. [SMS Communication Policy] | `agree_receive_sms_at_number` |
-| **Frequency** | Message frequency: as needed | `sms_frequency_as_needed` |
-| **Rates** | Standard SMS rates apply. | `standard_sms_rates_apply` |
-| **Opt-out** | Reply STOP to opt out. | `reply_stop_to_opt_out` |
-| **Policy link** | [SMS Communication Policy] | `sms_communication_policy` |
 | **Visibility note** | Your phone is NEVER visible to other users (phone_visibility = Only Me). | `phone_never_visible_to_other_users` |
 | **Save Button** | Save | `save` |
 | **Cancel Button** | Cancel | `cancel` |
 
 > **Важно для дизайнера:** Чекбокс должен быть **ПУСТЫМ** по умолчанию (☐, не ☑).
 
-#### ⚙️ Логика Frontend
+##### ⚙️ Логика Frontend
 
 ```
 1. Пользователь нажимает «Add phone» или «Edit» номер в Account Settings
@@ -1224,6 +1125,9 @@ ATT **обязателен**, если хотя бы одно:
        ▼
 2. Показать форму ввода номера + чекбокс
    Чекбокс = ПУСТОЙ по умолчанию
+       │
+       ├── Если это ПЕРВОЕ добавление номера:
+       │   → Чекбокс ПУСТОЙ, нужно явное согласие
        │
        ├── Если пользователь МЕНЯЕТ существующий номер на НОВЫЙ:
        │   → Чекбокс автоматически ОЧИЩАЕТСЯ (нужно новое согласие для нового номера)
@@ -1233,7 +1137,7 @@ ATT **обязателен**, если хотя бы одно:
        └── «Cancel» → закрыть, номер НЕ обновляется, старое согласие остаётся
 ```
 
-#### 💾 Backend / База данных
+##### 💾 Backend / База данных
 
 | Поле | Значение |
 |---|---|
@@ -1243,7 +1147,8 @@ ATT **обязателен**, если хотя бы одно:
 | `sms_consent_ip` | IP пользователя — для аудита TCPA |
 
 > **ВАЖНО:** Если номер изменился → старое согласие **больше не действует**. Новое согласие = для нового номера.
-> Для защиты от штрафов TCPA: вместе со статусом `true` перезаписывать timestamp + IP.
+
+</details>
 
 ---
 
@@ -1295,7 +1200,7 @@ ATT **обязателен**, если хотя бы одно:
 
 > Cookie preferences **НЕ нужно** записывать в `legal_consents_log`.
 > Хранить cookie consent preference в `localStorage` / cookie самого браузера.
-> Для мобильного приложения: если нет WebView с cookies — этот баннер **НЕ нужен** (SDK-аналитика регулируется через ПОТОК 6 ATT на iOS и через Play consent на Android).
+> Для мобильного приложения: если нет WebView с cookies — этот баннер **НЕ нужен** (SDK-аналитика для MVP работает без ATT, т.к. нет трекинговых SDK).
 
 ---
 
@@ -1497,8 +1402,8 @@ ATT **обязателен**, если хотя бы одно:
 | **ПОТОК 3** Push Notifications | ❌ НЕТ | Контролируется ОС (iOS/Android) |
 | **ПОТОК 4** Camera | ❌ НЕТ | Контролируется ОС |
 | **ПОТОК 5** Photos | ❌ НЕТ | Контролируется ОС |
-| **ПОТОК 6** ATT (iOS) | ❌ НЕТ | Контролируется iOS |
-| **ПОТОК 7** SMS Consent | ✅ **ДА** (в отдельной таблице) | TCPA требует доказательство согласия |
+| **ПОТОК 6** ATT (iOS) | ❌ НЕТ (не нужен для MVP) | Нет трекинговых SDK |
+| **ПОТОК 7** SMS Consent | ❌ НЕТ (не нужен для MVP) | Bestme не отправляет SMS |
 | **ПОТОК 8** Cookie Consent | ❌ НЕТ | Хранится в localStorage/cookie браузера |
 | **ПОТОК 9** Delete Account | ✅ **ДА** (в таблице `users`) | `users.status`, `deletion_requested_at`, `deletion_scheduled_for` + email уведомление + Apple Token Revoke |
 
@@ -1661,7 +1566,7 @@ ATT **обязателен**, если хотя бы одно:
 | # | Условие | Где описать | Что сделать |
 |---|---|---|---|
 | 1 | **Прямо указать цели** сбора DOB | Privacy Policy, раздел «Какие данные мы собираем» | Добавить абзац: «Мы собираем полную дату рождения для: 1) проверки возраста 18+, 2) персонализации контента, 3) начисления бонусов в День Рождения» |
-| 2 | **Показать пользователю** зачем это нужно | UI: microcopy под полем DOB при регистрации | Текст: «Мы используем вашу дату рождения для проверки возраста (18+), персонализации ленты и начисления бонусов в ваш праздник! 🎁» |
+| 2 | **Показать пользователю** зачем это нужно | UI: microcopy под полем DOB при регистрации | Текст: «Ваша дата рождения хранится в зашифрованном виде и никогда не отображается в профиле.» (⚠️ НЕ упоминать «18+» — нейтральный ввод!) |
 | 3 | **Зашифровать** DOB в базе данных | Backend: encryption at rest | Поле `dob_encrypted` — AES-256. При утечке базы злоумышленники НЕ получат открытые даты рождения |
 
 #### 📄 Готовый текст для Privacy Policy — раздел «Date of Birth»
@@ -1698,7 +1603,7 @@ deleting your account (GDPR Art. 17).
 |---|---|---|---|
 | 1 | **Формат хранения** | `YYYY-MM-DD` (ISO 8601) | — |
 | 2 | **Шифрование (encryption at rest)** | Поле `dob_encrypted` — AES-256 или аналог. Ключ шифрования хранится **отдельно** от базы данных (Key Management Service / env variable, НЕ в коде) | [GDPR Art. 32](https://gdpr-info.eu/art-32-gdpr/) |
-| 3 | **DOB НЕ в логах** | Поле `date_of_birth` / `dob` исключить из серверных логов (не логировать тела запросов с DOB) | GDPR Art. 5 |
+| 3 | **🚫 DOB НЕ в логах, аналитике, бэкапах** | **СТРОГО ЗАПРЕЩЕНО** передавать точную дату рождения в любые сторонние SDK (Google Analytics, Firebase, Mixpanel, AppsFlyer и т.д.) и записывать в текстовые логи сервера. В аналитику передавать ТОЛЬКО `age_bracket` (например: "18-24", "25-34"). Бэкенд: настроить фильтрацию логов (Sanitization), чтобы DOB никогда не записывался в логи в открытом виде | GDPR Art. 5 (минимизация + безопасность) |
 | 4 | **Cron job — День Рождения** | Ежедневный скрипт: расшифровать DOB → найти пользователей где `MM-DD == сегодня` → начислить бонусные баллы → отправить Push-уведомление «С Днём Рождения! 🎉 Вам начислены бонусные баллы!» | Бизнес-логика |
 | 5 | **Удаление при удалении аккаунта** | Когда пользователь удаляет аккаунт → `dob_encrypted` удаляется вместе со всеми данными | GDPR Art. 17 |
 | 6 | **Data Safety (Google Play)** | В Data Safety Section указать: «Date of birth — collected, encrypted, used for age verification and personalization» | Google Play |
@@ -2211,7 +2116,7 @@ Email: [email]
 | 4 | **Privacy Policy** ссылка в App Store Connect | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) | ☐ |
 | 5 | Реализовать **модерацию UGC**: Report + Block | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) | ☐ |
 | 6 | Реализовать **DOB форму** проверки возраста | [Apple §1.1](https://developer.apple.com/app-store/review/guidelines/) | ☐ |
-| 7 | **NSUserTrackingUsageDescription** в Info.plist | [Apple §5.1.2(i) ATT](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) | ☐ |
+| 7 | **NSUserTrackingUsageDescription** в Info.plist | ❌ НЕ НУЖНО для MVP (нет трекинговых SDK) | — |
 | 8 | Реализовать **удаление аккаунта** | [Apple Account Deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/) | ☐ |
 
 #### Google Play
@@ -2266,8 +2171,8 @@ Email: [email]
 | 3 | **Push Notifications** | Онбординг / первая попытка пуша | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) · [Google User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) |
 | 4 | **Camera Permission** | Первое фото/видео | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | Apple §5.1.1 · Google Prominent Disclosure |
 | 5 | **Photos Permission** | Первый выбор из галереи | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | Apple §5.1.1 · Google Prominent Disclosure |
-| 6 | **ATT (iOS)** | Первый запуск iOS 14.5+ | ✅ Системный диалог | Нет | ❌ (iOS хранит) | [Apple §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
-| 7 | **SMS Consent (TCPA)** | Добавление/изменение телефона | ✅ Нужно согласие | ☐ НЕ pre-checked | ✅ (отдельная таблица) | [TCPA §227(b)](https://www.law.cornell.edu/uscode/text/47/227) |
+| 6 | **ATT (iOS)** | ❌ НЕ НУЖЕН для MVP (нет трекинговых SDK) | — | — | ❌ (iOS хранит) | [Apple §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
+| 7 | **SMS Consent (TCPA)** | ❌ НЕ НУЖЕН для MVP (Bestme не отправляет SMS) | — | — | — | [TCPA §227(b)](https://www.law.cornell.edu/uscode/text/47/227) |
 | 8 | **Cookie Consent** | Первый визит на веб-сайт | ❌ Можно отказаться | ☐ НЕ pre-checked (analytics/ads) | ❌ (localStorage) | [ePrivacy 2002/58/EC](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058) · [GDPR Art. 7](https://gdpr-info.eu/art-7-gdpr/) |
 | 9 | **Delete Account** | В настройках (Settings → Account) | — | — | ✅ `users.status` + email + Apple Token Revoke | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) · [Apple §5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
 
@@ -2307,7 +2212,7 @@ Email: [email]
 | 1 | **Privacy Policy** | EN + DE, FR, ES, IT, PT | [GDPR Art. 13/14](https://gdpr-info.eu/art-13-gdpr/) · [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) | ☐ |
 | 2 | **Terms of Service** (18+ минимальный возраст) | EN + DE, FR, ES, IT, PT | Apple · Google | ☐ |
 | 3 | **Community Guidelines** | EN + DE, FR, ES, IT, PT | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | ☐ |
-| 4 | **SMS Communication Policy** | EN | [TCPA §227](https://www.law.cornell.edu/uscode/text/47/227) | ☐ |
+| 4 | **SMS Communication Policy** | ❌ НЕ НУЖНО для MVP (Bestme не отправляет SMS) | — |
 | 5 | ⚠️ **EU Representative** — назначить представителя в ЕС | — | [GDPR Art. 27](https://gdpr-info.eu/art-27-gdpr/) | ☐ |
 | 6 | Указать **EU Representative** в Privacy Policy | EN + все языки PP | GDPR Art. 27 | ☐ |
 | 7 | **AI Disclaimer** в ToS (если используется AI-проверка контента) | EN + все языки ToS | [EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) | ☐ |
@@ -2353,8 +2258,8 @@ Email: [email]
 |---|---|---|---|
 | 1 | `legal_consents_log` (user_id, consent_type, version, timestamp, IP) | ПОТОК 1 + ПОТОК 2 согласия | GDPR |
 | 2 | `users.push_notifications_enabled` (true/false) | Статус push-уведомлений | — |
-| 3 | `users.analytics_enabled` (true/false) | ATT выбор (iOS) | — |
-| 4 | `users.sms_consent` + `sms_consent_at` + `sms_consent_ip` | SMS согласие привязано к номеру | TCPA |
+| 3 | `users.analytics_enabled` (true/false) | ATT выбор (iOS) — ❌ НЕ НУЖНО для MVP | — |
+| 4 | `users.sms_consent` + `sms_consent_at` + `sms_consent_ip` | SMS согласие — ❌ НЕ НУЖНО для MVP (Bestme не отправляет SMS) | TCPA |
 | 5 | `users.dob_encrypted` (зашифрованная дата YYYY-MM-DD) | Полная дата рождения (encryption at rest, AES-256). Цели: проверка возраста, бонусы на ДР, персонализация | GDPR Art. 32 |
 | 6 | `users.age_bracket` ("18+") | Результат проверки DOB (открытое поле, быстрый доступ) | — |
 | 7 | `users.country` (код страны) | GeoIP результат | — |
@@ -2418,15 +2323,19 @@ Email: [email]
 
 ---
 
-### 🔓 ПОСЛЕ ЗАПУСКА — по приоритету
+### 🔓 Заблокированные страны — почему и что нужно
 
-- [ ] 🇬🇧 Интегрировать **Yoti** или **OneID** → разблокировать UK
-- [ ] 🇦🇺 Интегрировать **Yoti** (facial age) → разблокировать Австралию
-- [ ] 🇧🇷 Интегрировать **ID-верификацию** → разблокировать Бразилию
-- [ ] 🇰🇷 Найти корейского провайдера → разблокировать Юж. Корею
-- [ ] 🇲🇾 Интегрировать **eKYC** → разблокировать Малайзию
-- [ ] 🇷🇺 Поставить **серверы в РФ** → разблокировать Россию
-- [ ] Для ЕС: подготовить **DPIA** (Data Protection Impact Assessment)
+| Страна | Почему заблокирована | Что нужно для разблокировки |
+|---|---|---|
+| 🇬🇧 UK | Online Safety Act 2023 — DOB недостаточно | ID-верификация (Yoti/OneID) |
+| 🇦🇺 Австралия | Online Safety Amendment Act 2024 — нужна biometric | Facial age estimation (Yoti) |
+| 🇧🇷 Бразилия | Lei 15.211/2025 — нужна ID-верификация | ID-верификация |
+| 🇨🇳 Китай | Нац. ID + локальные серверы + китайский партнёр | Слишком сложно для MVP |
+| 🇰🇷 Юж. Корея | PIPA — нужна i-PIN верификация | Корейский провайдер |
+| 🇲🇾 Малайзия | Online Safety Act 2025 — нужна eKYC | eKYC провайдер |
+| 🇷🇺 Россия | ФЗ-152 — серверы обязательно в РФ | Серверы в РФ |
+| 🇧🇾 Беларусь | Госконтроль интернета | Нецелесообразно |
+| 🇹🇲 Туркменистан | Нет рынка | Нецелесообразно |
 
 ### ⚡ ДО ЗАПУСКА — обязательно
 
@@ -2446,100 +2355,36 @@ Email: [email]
 
 ---
 
-## Все ссылки на законы (одним списком)
+## Все ссылки на законы (краткий справочник)
 
-### Федеральные законы
+> Полные тексты законов — для юристов и при необходимости. Основные ссылки, которые реально нужны разработчикам, уже указаны в соответствующих потоках выше.
 
-| Страна | Закон | Линк |
+### Основные законы (используем в работе)
+
+| Закон | Зачем нам | Ссылка |
 |---|---|---|
-| 🇺🇸 США | COPPA (16 CFR 312) | https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312 |
-| 🇺🇸 США | FTC COPPA FAQ | https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions |
-| 🇺🇸 Калифорния | CAADCA (AB 2273) | https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB2273 |
-| 🇺🇸 Техас | HB 18 | https://capitol.texas.gov/BillLookup/History.aspx?LegSess=88R&Bill=HB18 |
-| 🇺🇸 Юта | SB 152 | https://le.utah.gov/~2023/bills/static/SB0152.html |
-| 🇺🇸 Вирджиния | SB 854 | https://lis.virginia.gov/bill-details/20251/SB854 |
-| 🇺🇸 Луизиана | HB 570 | https://www.legis.la.gov/legis/BillInfo.aspx?s=25RS&b=HB570 |
-| 🇺🇸 США | KOSA (S.1748) — НЕ принят | https://www.congress.gov/bill/119th-congress/senate-bill/1748 |
-| 🇨🇦 Канада | PIPEDA | https://laws-lois.justice.gc.ca/eng/acts/p-8.6/ |
-| 🇪🇺 ЕС | GDPR (полный текст) | https://gdpr-info.eu/ |
-| 🇪🇺 ЕС | GDPR Art. 8 (возраст цифрового согласия) | https://gdpr-info.eu/art-8-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 6 (основания обработки) | https://gdpr-info.eu/art-6-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 17 (право на удаление) | https://gdpr-info.eu/art-17-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 15 (право на доступ) | https://gdpr-info.eu/art-15-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 20 (право на перенос) | https://gdpr-info.eu/art-20-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 27 (представитель) | https://gdpr-info.eu/art-27-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 33 (уведомление об утечке) | https://gdpr-info.eu/art-33-gdpr/ |
-| 🇪🇺 ЕС | DSA Art. 28 (защита несовершеннолетних) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
-| 🇪🇺 ЕС | DSA Art. 14 (Terms of Service / Community Guidelines) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
-| 🇪🇺 ЕС | DSA Art. 16 (notice and action mechanism — жалобы) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
-| 🇪🇺 ЕС | DSA Art. 17 (уведомление о результате) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
-| 🇪🇺 ЕС | DSA Art. 20 (internal complaint-handling / appeals) | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
-| 🇪🇺 ЕС | ePrivacy Directive 2002/58/EC (cookies) | https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058 |
-| 🇪🇺 ЕС | GDPR Art. 7 (conditions for consent) | https://gdpr-info.eu/art-7-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 13 (information to be provided — Privacy Policy) | https://gdpr-info.eu/art-13-gdpr/ |
-| 🇪🇺 ЕС | GDPR Art. 25 (data protection by design / by default) | https://gdpr-info.eu/art-25-gdpr/ |
-| 🇪🇺 ЕС | EU AI Act (Regulation 2024/1689) | https://eur-lex.europa.eu/eli/reg/2024/1689/oj |
-| 🇺🇸 США | TCPA 47 U.S.C. §227 (SMS consent) | https://www.law.cornell.edu/uscode/text/47/227 |
-| 🇫🇷 Франция | Loi 2024-449 | https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000049563651 |
-| 🇫🇷 Франция | CNIL Guidelines (cookies) | https://www.cnil.fr/en/cookies-and-other-tracking-devices |
-| 🇩🇪 Германия | JuSchG | https://www.gesetze-im-internet.de/juschg/ |
+| **GDPR** (ЕС) | Главный закон — приватность, согласия, удаление данных | https://gdpr-info.eu/ |
+| **CAADCA** (Калифорния) | Приватность по умолчанию, нейтральный DOB | https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB2273 |
+| **COPPA** (США) | Не подпадаем (18+), но DOB должен быть нейтральным | https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312 |
+| **DSA** (ЕС) | Модерация UGC, жалобы, Community Guidelines | https://eur-lex.europa.eu/eli/reg/2022/2065/oj |
+| **Apple Guidelines** | Правила App Store | https://developer.apple.com/app-store/review/guidelines/ |
+| **Google Play Policy** | Правила Play Store | https://support.google.com/googleplay/android-developer/answer/9893335 |
+
+### Заблокированные страны (почему)
+
+| Страна | Закон | Ссылка |
+|---|---|---|
 | 🇬🇧 UK | Online Safety Act 2023 | https://www.legislation.gov.uk/ukpga/2023/50/contents |
-| 🇬🇧 UK | Ofcom руководство | https://www.ofcom.org.uk/online-safety/illegal-and-harmful-content/online-safety-regulatory-documents |
-| 🇬🇧 UK | Ofcom защита детей | https://www.ofcom.org.uk/online-safety/protecting-children/ |
 | 🇦🇺 Австралия | Online Safety Amendment Act 2024 | https://www.legislation.gov.au/C2024A00127/asmade |
-| 🇦🇺 Австралия | eSafety Commissioner | https://www.esafety.gov.au/about-us/industry-regulation/social-media-age-restrictions |
-| 🇧🇷 Бразилия | Digital ECA (Lei 15.211/2025) | https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/Lei/L15211.htm |
-| 🇨🇳 Китай | Положение о защите несовершеннолетних онлайн (EN) | https://www.chinalawtranslate.com/en/online-protection-of-minors/ |
-| 🇨🇳 Китай | Оригинал (CN) | https://www.gov.cn/zhengce/content/202310/content_6911288.htm |
-| 🇰🇷 Юж. Корея | PIPA (EN) | https://elaw.klri.re.kr/eng_mobile/viewer.do?hseq=62389&type=part&key=4 |
-| 🇰🇷 Юж. Корея | PIPC | https://www.pipc.go.kr/eng/user/lgp/law/lawDetail.do |
-| 🇮🇳 Индия | DPDP Act 2023 (PDF) | https://www.indiacode.nic.in/bitstream/123456789/22037/1/a2023-22.pdf |
-| 🇮🇳 Индия | DPDP Section 9 | https://indiankanoon.org/doc/98869575/ |
-| 🇲🇾 Малайзия | Online Safety Act 2025 (анализ) | https://www.mayerbrown.com/en/insights/publications/2025/12/malaysias-proposed-social-media-ban-for-children-how-it-compares-with-australia-and-singapore |
-
-### Страны бывшего СССР
-
-| Страна | Закон | Линк |
-|---|---|---|
+| 🇧🇷 Бразилия | Lei 15.211/2025 | https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/Lei/L15211.htm |
+| 🇨🇳 Китай | Положение о защите несовершеннолетних онлайн | https://www.chinalawtranslate.com/en/online-protection-of-minors/ |
+| 🇰🇷 Юж. Корея | PIPA | https://elaw.klri.re.kr/eng_mobile/viewer.do?hseq=62389&type=part&key=4 |
+| 🇲🇾 Малайзия | Online Safety Act 2025 | https://www.mayerbrown.com/en/insights/publications/2025/12/malaysias-proposed-social-media-ban-for-children-how-it-compares-with-australia-and-singapore |
 | 🇷🇺 Россия | ФЗ-152 «О персональных данных» | http://www.consultant.ru/document/cons_doc_LAW_61801/ |
-| 🇺🇦 Украина | Закон «О защите персональных данных» (№ 2297-VI) | https://zakon.rada.gov.ua/laws/show/2297-17 |
-| 🇧🇾 Беларусь | Закон «О персональных данных» (№ 99-З) | https://pravo.by/document/?guid=12551&p0=H12100099 |
-| 🇰🇿 Казахстан | Закон «О персональных данных» (№ 94-V) | https://adilet.zan.kz/rus/docs/Z1300000094 |
-| 🇬🇪 Грузия | Закон «О защите персональных данных» (2011) | https://matsne.gov.ge/en/document/view/1561437 |
-| 🇦🇲 Армения | Закон «О защите персональных данных» (2015) | https://www.arlis.am/documentview.aspx?docID=98818 |
-| 🇦🇿 Азербайджан | Закон «О персональных данных» (2010) | https://e-qanun.az/framework/19957 |
-| 🇲🇩 Молдова | Закон «О защите персональных данных» (№ 133) | https://www.legis.md/cautare/getResults?doc_id=110584 |
-| 🇺🇿 Узбекистан | Закон «О персональных данных» (2019) | https://lex.uz/docs/4396428 |
-
-### Магазины приложений
-
-| Что | Линк |
-|---|---|
-| Apple App Store Review Guidelines | https://developer.apple.com/app-store/review/guidelines/ |
-| Apple App Store §5.1.1 (Data Collection) | https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage |
-| Apple App Store §5.1.2(i) (ATT) | https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing |
-| Apple App Store §1.2 (UGC) | https://developer.apple.com/app-store/review/guidelines/#user-generated-content |
-| Apple ATT Framework | https://developer.apple.com/documentation/apptrackingtransparency |
-| Apple Account Deletion Requirement | https://developer.apple.com/support/offering-account-deletion-in-your-app/ |
-| Google Play Families Policy | https://support.google.com/googleplay/android-developer/answer/9893335?hl=en |
-| Google Play целевая аудитория | https://support.google.com/googleplay/android-developer/answer/9867159?hl=en |
-| Google Play Age Signals API | https://support.google.com/googleplay/android-developer/answer/16569691?hl=en |
-| Google Play User Data Policy | https://support.google.com/googleplay/android-developer/answer/10144311?hl=en |
-| Google Play UGC Policy | https://support.google.com/googleplay/android-developer/answer/9876937?hl=en |
-
-### Провайдеры верификации (для Phase 2)
-
-| Провайдер | Что делает | Линк |
-|---|---|---|
-| **Yoti** | Facial age estimation, ID check | https://www.yoti.com/business/age-verification/ |
-| **OneID** | Open Banking age check (UK) | https://oneid.uk/ |
-| **AgeChecked** | Multi-method age check | https://agechecked.com/ |
-| **Persona** | eKYC, ID verification | https://withpersona.com/ |
-| **IDnow** | Video/Auto ID verification | https://www.idnow.io/ |
 
 ### GeoIP сервисы
 
-| Сервис | Линк |
+| Сервис | Ссылка |
 |---|---|
 | MaxMind GeoLite2 | https://dev.maxmind.com/geoip/geolite2-free-geolocation-data |
 | ipinfo.io | https://ipinfo.io/ |
