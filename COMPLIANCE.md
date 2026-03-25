@@ -337,40 +337,23 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
 | 🇧🇾 **Беларусь** | `BY` | Строгий гос. контроль интернета. Сервис могут заблокировать без предупреждения | — | Закон «О персональных данных» (99-З) | [pravo.by](https://pravo.by/document/?guid=12551&p0=H12100099) | Блокировка |
 | 🇹🇲 **Туркменистан** | `TM` | Интернет практически закрыт. Единственный провайдер — гос. «Туркментелеком». Нет рынка | — | — | — | — |
 
-### Как блокировать (код)
+### Как блокировать
 
-```javascript
-// На бэкенде: проверка при регистрации и при входе
-const BLOCKED_COUNTRIES = ['GB', 'AU', 'BR', 'CN', 'KR', 'MY', 'RU', 'BY', 'TM'];
+> ⚠️ **Писать свой код для геоблокировки НЕ нужно.** Блокировка реализуется на уровне инфраструктуры:
 
-function checkCountryAccess(countryCode) {
-  if (BLOCKED_COUNTRIES.includes(countryCode)) {
-    return {
-      allowed: false,
-      message: 'Our service is not yet available in your country. ' +
-               'We are working on expanding availability.'
-    };
-  }
-  return { allowed: true };
-}
-```
+| Платформа | Как блокируются страны | Что делать |
+|---|---|---|
+| **Веб-сайт** | **Cloudflare Firewall Rules** — по заголовку `CF-IPCountry`. Настраивается в панели Cloudflare, код не нужен | Создать правило: `ip.geoip.country in {"GB" "AU" "BR" "CN" "KR" "MY" "RU" "BY" "TM"}` → Block |
+| **Мобильное приложение (iOS/Android)** | **Backend API** — при первом запуске приложение отправляет запрос на сервер, сервер определяет страну по IP (через Cloudflare `CF-IPCountry` или MaxMind), возвращает `{ allowed: false }` → приложение показывает экран блокировки | Backend-задача, не frontend |
 
-### Что показывать заблокированным пользователям
+### Что показывать заблокированным пользователям (мобильное приложение)
 
-```
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│  К сожалению, наш сервис пока недоступен        │
-│  в вашей стране.                                │
-│                                                 │
-│  We're sorry, our service is not yet            │
-│  available in your country.                     │
-│                                                 │
-│  Мы работаем над расширением.                   │
-│  We are working on expanding availability.      │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
+Экран блокировки страны (ключ: `country_blocked_screen`):
+
+| Язык | Текст |
+|---|---|
+| 🇬🇧 EN | We're sorry, our service is not yet available in your country. We are working on expanding availability. |
+| 🇷🇺 RU | К сожалению, наш сервис пока недоступен в вашей стране. Мы работаем над расширением. |
 
 ### Почему блокировка — это законно и безопасно
 
