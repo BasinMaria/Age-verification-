@@ -43,38 +43,7 @@
 | | **🤖 AI И УМНЫЕ ФУНКЦИИ** | | | |
 | 22 | Персональные рекомендации | AI подбирает контент и услуги | [EU AI Act](https://eur-lex.europa.eu/eli/reg/2024/1689/oj): рекомендательные системы = «минимальный риск» → обязательства ограничены **прозрачностью** (раскрыть что используется AI). Добавить в Privacy Policy | ☐ |
 | 23 | AI-поиск | Поиск через embeddings и векторные базы | Прозрачность: раскрыть в Privacy Policy что поиск использует AI | ☐ |
-| 24 | Проверка достоверности информации | AI проверяет контент | Disclaimer: AI-проверка не является гарантией достоверности (подробности ниже) | ☐ |
-
-> **❓ Что значит «Проверка достоверности информации — AI проверяет контент»?**
->
-> Если BestMe использует AI для проверки контента (например: автоматическая проверка фактов, фильтрация спама, пометка подозрительных постов) → нужно **чётко сказать пользователям**, что AI-проверка:
-> - **НЕ гарантирует** что контент достоверен
-> - **НЕ является** редакционным контролем (мы НЕ СМИ)
-> - Может **ошибаться** (false positives / false negatives)
->
-> **Что конкретно нужно сделать:**
->
-> | # | Что | Где | Зачем |
-> |---|---|---|---|
-> | 1 | Добавить **disclaimer** в Terms of Service | Раздел «AI и автоматизация» | [EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) — прозрачность: пользователь должен знать что контент проверяется AI |
-> | 2 | Добавить **disclaimer** в Privacy Policy | Раздел «Автоматические решения» | GDPR Art. 22 — право не быть объектом решения, основанного исключительно на автоматизированной обработке |
-> | 3 | ~~Показать **пометку** на проверенном контенте~~ | ~~В UI рядом с постом~~ | ~~Прозрачность~~ |
-> | 4 | **Обжалование** | Если AI удалил/скрыл контент → пользователь может подать Appeal (уже есть в DSA Art. 20) | DSA Art. 20 |
->
-> **⚠️ О пункте 3 (Плашка «Проверено AI»):** Показывать плашку «ℹ️ Проверено AI» в интерфейсе рядом с каждым постом **НЕ НУЖНО**. Это НЕ требование закона. Достаточно раскрыть использование AI в ToS и Privacy Policy (пункты 1 и 2 выше).
->
-> **Текст disclaimer (для ToS):**
-> ```
-> AI Content Review: BestMe may use automated systems (AI) to review 
-> content for compliance with Community Guidelines. This automated review
-> is NOT a guarantee of accuracy, truthfulness, or quality of any content.
-> Users are solely responsible for the content they publish. If you believe
-> AI made an error, you can appeal the decision.
-> ```
->
-> **Если BestMe НЕ использует AI для проверки контента** (только ручная модерация по жалобам) → этот disclaimer **НЕ нужен**. Просто убрать пункт 24 из таблицы.
-
-> **Вывод:** BestMe = **социальная сеть с UGC**. Все compliance-требования этого документа полностью покрывают ВСЕ функции платформы. Специальные лицензии (финансовые, медицинские, крипто) на текущем этапе **НЕ нужны** — бонусная система = loyalty points, AI = рекомендации (минимальный риск), контент = UGC (не медицинские рекомендации), цели пользователя = self-reported данные.
+| 24 | ~~Проверка достоверности информации~~ | ~~AI проверяет контент~~ | **УБРАНО** — если не используем AI для проверки контента, этот пункт НЕ нужен. Если используем → достаточно disclaimer в ToS/Privacy Policy (НЕ в UI) | — |
 
 ### 🌐 Языки
 
@@ -324,7 +293,7 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
 | 10 | **Удаление аккаунта слишком сложное** (скрыто, много шагов) | Apple §5.1.1(v) | Максимум 2-3 клика: Настройки → Аккаунт → Удалить. НЕ требовать звонок/email для удаления | Apple | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
 | | **📱 ТЕХНИЧЕСКИЕ ПРИЧИНЫ** | | | | |
 | 11 | **Приложение не работает / крашится** | Обе платформы | Протестировать перед отправкой. Все экраны должны работать | Оба | — |
-| 12 | **Пустые экраны / заглушки** (placeholder content) | Apple §2.1, Google | Все заявленные функции должны реально работать. Нельзя отправить с «Coming Soon» | Оба | [Apple §2.1](https://developer.apple.com/app-store/review/guidelines/#functionality) |
+| 12 | **Пустые экраны / заглушки** | Apple §2.1, Google | **Простым языком:** Каждая кнопка и каждый экран в приложении должны работать. Если кнопка ведёт на пустой экран с надписью «Coming Soon» или «В разработке» — Apple **откажет**. Перед отправкой на ревью пройтись по ВСЕМ экранам и убедиться что везде есть реальный контент/функционал. Если фича не готова — **убрать кнопку** | Оба | [Apple §2.1](https://developer.apple.com/app-store/review/guidelines/#functionality) |
 | 13 | **Нет демо-аккаунта для ревьюера** | Apple требует | Предоставить тестовый логин/пароль в App Store Connect для ревью | Apple | [Apple Review](https://developer.apple.com/app-store/review/) |
 | 14 | **Приложение = обёртка над веб-сайтом** (WebView без native функций) | Apple §4.2 | Должна быть native функциональность, не просто WebView | Apple | [Apple §4.2](https://developer.apple.com/app-store/review/guidelines/#minimum-functionality) |
 | | **🔒 ПРИВАТНОСТЬ И ДАННЫЕ** | | | | |
@@ -345,76 +314,6 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
 | 26 | **Манипуляция рейтингами** (просьба поставить 5 звёзд до использования) | Apple §5.6.1, Google | Не просить рейтинг ДО того как пользователь воспользовался приложением | Оба | [Apple §5.6.1](https://developer.apple.com/app-store/review/guidelines/#app-store) |
 
 **Если все 10 обязательных пунктов выполнены → причин для отказа НЕТ.**
-
----
-
-### 🏗️ ЗОНЫ ОТВЕТСТВЕННОСТИ — порядок по этапам
-
-> **Что происходит на каждом этапе взаимодействия пользователя с BestMe** и какие законы/правила применяются.
-
-#### Этап 1: ДО регистрации (первый визит)
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Пользователь открывает приложение | GeoIP проверка → если страна заблокирована → показать сообщение и НЕ пускать | Законы заблокированных стран | Бэкенд |
-| Пользователь открывает сайт | Cookie Consent Banner (для ЕС) — ДО любых cookie кроме essential | [ePrivacy 2002/58/EC](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058), [GDPR Art. 7](https://gdpr-info.eu/art-7-gdpr/) | Фронтенд (веб) |
-| Privacy Policy и Terms of Service | Должны быть доступны ДО регистрации (ссылки на экране входа) | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage), GDPR Art. 13 | Фронтенд + юрист |
-
-#### Этап 2: РЕГИСТРАЦИЯ
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Форма DOB | Поле даты рождения — ОБЯЗАТЕЛЬНО для всех способов входа | Магазины + COPPA | Фронтенд + бэкенд |
-| Проверка возраста | Если < 18 → БЛОК. НЕ создавать аккаунт. Anti-retry (email lock + device lock) | COPPA, GDPR Art. 8 | Бэкенд |
-| Хранение DOB | Дата рождения **СОХРАНЯЕТСЯ в зашифрованном виде** (encryption at rest). Цели: 1) проверка возраста 18+, 2) бонусы/подарки на День Рождения, 3) персонализация контента по возрастной группе. Правовое основание: явное согласие + исполнение договора (GDPR Art. 6(1)(a) + (b)) | GDPR Art. 5(1)(c) + Art. 32 (безопасность) | Бэкенд |
-| Согласие с Terms + Privacy | Чекбокс «I agree to Terms of Service and Privacy Policy» при регистрации | GDPR Art. 7, контрактное основание | Фронтенд |
-| Создание аккаунта | Записать: email, name, **DOB (зашифрованная)**, age_bracket, country. НЕ записывать: IP | GDPR | Бэкенд |
-
-#### Этап 3: ПЕРВЫЙ ВХОД (онбординг)
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Welcome Screen | GDPR-экран: «Ваш профиль приватный по умолчанию, данные защищены» | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/), CAADCA | Фронтенд |
-| Push-нотификации | Запрос разрешения на push (можно пропустить) | Apple §5.1.1 | Фронтенд (ОС) |
-| ATT диалог (iOS) | Системный диалог трекинга (iOS 14.5+) | [Apple ATT](https://developer.apple.com/documentation/apptrackingtransparency) | Фронтенд (iOS) |
-
-#### Этап 4: СОЗДАНИЕ КОНТЕНТА (посты, комментарии, блоги)
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Первая публикация | Показать Community Guidelines + согласие (ПОТОК 2) | Apple §1.2, Google UGC, [DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | Фронтенд |
-| Каждый пост/комментарий | Кнопка «Report» (жалоба) видна другим пользователям | Apple §1.2, Google UGC, DSA Art. 16 | Фронтенд |
-| Блог/сообщество | Те же правила что для постов. Модерация распространяется на весь контент блога | Apple §1.2 | Модерация |
-| Health-контент | Disclaimer: «Не является медицинской рекомендацией» (если контент о здоровье) | Apple §1.4.1 | Фронтенд / модерация |
-
-#### Этап 5: МОДЕРАЦИЯ (обработка жалоб)
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Жалоба получена | Рассмотреть в течение 24 часов (рекомендация) | DSA Art. 16 | Модераторы |
-| Удаление контента | Уведомить автора с причиной удаления | [DSA Art. 17](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | Бэкенд + модераторы |
-| Обжалование (Appeal) | Автор может оспорить удаление | [DSA Art. 20](https://eur-lex.europa.eu/eli/reg/2022/2065/oj) | Фронтенд + модераторы |
-| Результат жалобы | Уведомить заявителя о результате | DSA Art. 17 | Бэкенд |
-| CSAM контент | **Немедленное** удаление + сообщение в NCMEC (США) / IWF (UK/ЕС) | 18 U.S.C. §2258A, закон ВСЕХ стран | Бэкенд (автоматически) |
-
-#### Этап 6: НАСТРОЙКИ АККАУНТА
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Удаление аккаунта | Кнопка в настройках. Максимум 2-3 клика. Удалить ВСЕ данные в течение 30 дней | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/), [Apple](https://developer.apple.com/support/offering-account-deletion-in-your-app/), [Google](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en) | Бэкенд |
-| Веб-форма удаления | Страница на сайте для тех кто удалил приложение | Google Play обязательно | Фронтенд (веб) |
-| Экспорт данных | Кнопка «Скачать мои данные» | [GDPR Art. 15](https://gdpr-info.eu/art-15-gdpr/) / [Art. 20](https://gdpr-info.eu/art-20-gdpr/) | Бэкенд |
-| Настройки приватности | Профиль публичный/приватный, видимость данных | [GDPR Art. 25](https://gdpr-info.eu/art-25-gdpr/), CAADCA | Фронтенд |
-
-#### Этап 7: ВЕБ-САЙТ (дополнительно к приложению)
-
-| Действие | Что должно быть | Закон | Ответственность |
-|---|---|---|---|
-| Cookie Banner | Баннер согласия на cookie (ДО аналитики/рекламы) для ЕС-пользователей | ePrivacy, GDPR | Фронтенд (веб) |
-| Веб-форма удаления | `bestme.app/delete-account` — форма для запроса удаления данных | Google Play | Фронтенд (веб) + бэкенд |
-| Privacy Policy | Полный текст на EN + DE, FR, ES, IT, PT | GDPR Art. 13/14 | Юрист |
-| Terms of Service | Полный текст, включая 18+ возраст | Контрактные обязательства | Юрист |
-| Community Guidelines | Правила сообщества | DSA Art. 14, Apple §1.2 | Юрист |
 
 ---
 
@@ -688,38 +587,55 @@ function checkCountryAccess(countryCode) {
 ```
 ПОРЯДОК ПОКАЗА ЭКРАНОВ (после успешной регистрации / входа):
 
-  Регистрация (email ИЛИ Google/Facebook/Apple)
-       │
-       ▼
-  DOB → проверка возраста (Секция 4)
-       │
-       ▼
-  ПОТОК 1: GDPR Privacy Defaults — профиль публичный
-  (один раз, ПЕРЕД лентой)
-       │
-       ▼
+  ┌─────────────────────────────────────────┐
+  │ Регистрация (email/Google/Facebook/Apple)│
+  │ + DOB → проверка возраста (Секция 4)     │
+  └────────────────┬────────────────────────┘
+                   ▼
+  ПОТОК 1: GDPR Welcome Screen
+  (один раз, автоматически, ПЕРЕД лентой)
+  Платформы: iOS + Android
+                   │
+                   ▼
   → Пользователь попадает в Ленту (Feed)
-       │
-       ├── Первая попытка создать пост/комментарий/фото →
-       │   ПОТОК 2: UGC Community Guidelines
-       │
-       ├── Push-уведомления (онбординг или первая попытка) →
-       │   ПОТОК 3: Push Notifications Permission
-       │
-       ├── Первое фото с камеры →
-       │   ПОТОК 4: Camera Permission
-       │
-       ├── Первый выбор из галереи →
-       │   ПОТОК 5: Photos Permission
-       │
-       ├── Первый запуск на iOS 14.5+ (если есть аналитика/реклама) →
-       │   ПОТОК 6: App Tracking Transparency (только iOS)
-       │
-       ├── Добавление/изменение номера телефона →
-       │   ПОТОК 7: SMS Consent
-       │
-       └── Веб-версия / сайт (если есть cookies) →
-           ПОТОК 8: Cookie Consent Banner
+  Дальнейшие потоки показываются ПО ТРЕБОВАНИЮ
+  (когда пользователь впервые нажимает соответствующую кнопку):
+                   │
+  ┌────────────────┼────────────────────────────┐
+  │                │                             │
+  ▼                ▼                             ▼
+  ПОТОКИ           ПОТОКИ                        ПОТОКИ
+  ПО ДЕЙСТВИЮ      ПО ДЕЙСТВИЮ                   ПО ПЛАТФОРМЕ
+  (iOS+Android):   (iOS+Android):                (разные):
+  │                │                             │
+  ├─ Первый пост → ├─ Первое фото              ├─ iOS 14.5+:
+  │  ПОТОК 2:      │  с камеры →                │  ПОТОК 6: ATT
+  │  UGC Guidelines│  ПОТОК 4: Camera            │  (если есть
+  │                │                             │   маркетинговые SDK)
+  │                ├─ Первое голосовое →         │
+  │                │  ПОТОК 4Б: Microphone       ├─ Веб-сайт:
+  │                │                             │  ПОТОК 8: Cookie
+  │                ├─ Первое видео →             │
+  │                │  ПОТОК 4В: Camera+Mic       │
+  │                │                             │
+  │                ├─ Первый выбор из галереи →  │
+  │                │  ПОТОК 5: Photos            │
+  │                │                             │
+  │                ├─ Добавление телефона →       │
+  │                │  ПОТОК 7: SMS Consent        │
+  │                │                             │
+  │                └─ Нажал «Push» или           │
+  │                   онбординг →                │
+  │                   ПОТОК 3: Push Notifications│
+  │                                              │
+  └── В любой момент:                            │
+      Settings → Account →                       │
+      ПОТОК 9: Delete Account                    │
+
+  ⚠️ ПОТОК 6 (ATT) — показывается ПЕРВЫМ при входе
+     на iOS, ЕСЛИ в приложении есть маркетинговые SDK
+     (Facebook SDK, AppsFlyer и т.д.).
+     Показывается ПЕРЕД инициализацией этих SDK.
 ```
 
 ---
@@ -918,27 +834,148 @@ function checkCountryAccess(countryCode) {
 | **Primary Button** | Continue | `continue` |
 | **Secondary Button** | Not now | `not_now` |
 
+#### ⚙️ Info.plist (iOS)
+
+Ключ: `NSCameraUsageDescription`
+Значение: `"This allows you to take photos and record videos to share in your profile and posts."`
+
 #### ⚙️ Логика Frontend
 
 ```
-1. Пользователь впервые нажимает «Сделать фото» / «Снять видео»
+1. Пользователь впервые нажимает «Сделать фото»
        │
        ▼
-2. Показать наш экран с объяснением (Prominent Disclosure)
+2. Проверить статус разрешения ОС:
        │
-       ├── «Continue» → вызвать системное окно:
-       │   «"Bestme" Would Like to Access the Camera: Allow / Don't Allow»
-       │       │
-       │       ├── Allow → открыть камеру, продолжить
-       │       └── Don't Allow → вернуть на предыдущий экран
+       ├── Статус = NOT_DETERMINED (ещё не спрашивали):
+       │   → Показать наш экран с объяснением (Шаг 1)
+       │       ├── «Continue» → вызвать системный диалог (Шаг 2)
+       │       │       ├── Allow → открыть камеру
+       │       │       └── Don't Allow → вернуть назад
+       │       └── «Not now» → закрыть, действие прервано
        │
-       └── «Not now» → закрыть, вернуть на предыдущий экран, действие прервано
+       └── Статус = DENIED (ранее отказал):
+           → Показать экран с изменённым UI:
+               Текст: "You previously declined camera access.
+                       Please enable it in your device settings to
+                       take photos and videos."
+               Кнопка: [Go to Settings] → Deep Link в настройки приложения
 ```
 
 #### 💾 Backend / База данных
 
 > **НЕ нужно записывать в `legal_consents_log`.**
 > Доступ к камере контролируется на уровне ОС. Бэкенду не нужны юридические логи.
+
+---
+
+### 🎙️ ПОТОК 4Б: Microphone Permission (только для голосовых сообщений в чате)
+
+| | |
+|---|---|
+| **Цель** | Объяснить зачем нужен доступ к микрофону ПЕРЕД системным диалогом |
+| **Закон** | [Google Play Prominent Disclosure](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) · [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| **Триггер** | При **первой** попытке записать голосовое сообщение в чате |
+| **Платформы** | iOS и Android |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme needs access to your microphone | `microphone_permission_title` |
+| **Body intro** | We use your microphone so you can: | `microphone_permission_description` |
+| **Bullet 1** | • Record and send voice messages in chats | `microphone_permission_record_voice_messages` |
+| **Settings note** | You can change this access at any time in your device settings. | `microphone_permission_change_in_device_settings` |
+| **Primary Button** | Continue | `continue` |
+| **Secondary Button** | Not now | `not_now` |
+
+#### ⚙️ Info.plist (iOS)
+
+Ключ: `NSMicrophoneUsageDescription`
+Значение: `"This allows you to record voice messages in chats and capture audio for your videos."`
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые нажимает «Записать голосовое сообщение» в чате
+       │
+       ▼
+2. Проверить статус разрешения ОС:
+       │
+       ├── Статус = NOT_DETERMINED (ещё не спрашивали):
+       │   → Показать наш экран с объяснением (Шаг 1)
+       │       ├── «Continue» → вызвать системный диалог (Шаг 2)
+       │       │       ├── Allow → записать голосовое
+       │       │       └── Don't Allow → вернуть назад
+       │       └── «Not now» → закрыть, действие прервано
+       │
+       └── Статус = DENIED (ранее отказал):
+           → Показать экран с изменённым UI:
+               Текст: "You previously declined microphone access.
+                       Please enable it in your device settings to
+                       send voice messages."
+               Кнопка: [Go to Settings] → Deep Link в настройки приложения
+```
+
+#### 💾 Backend / База данных
+
+> **НЕ нужно записывать в `legal_consents_log`.** Доступ к микрофону контролируется на уровне ОС.
+
+---
+
+### 🎥 ПОТОК 4В: Camera + Microphone (для съёмки видео с звуком)
+
+| | |
+|---|---|
+| **Цель** | Объяснить зачем нужен доступ к камере И микрофону ПЕРЕД системным диалогом |
+| **Закон** | [Google Play Prominent Disclosure](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) · [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| **Триггер** | При **первой** попытке снять видео с звуком для поста |
+| **Платформы** | iOS и Android |
+
+#### 🖥️ Frontend тексты и ключи переводов
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Bestme needs access to your camera and microphone | `camera_mic_permission_title` |
+| **Body intro** | We need these permissions so you can: | `camera_mic_permission_description` |
+| **Bullet 1** | • Record videos with sound for your posts and profile | `camera_mic_permission_record_videos_with_sound` |
+| **Settings note** | You can change this access at any time in your device settings. | `camera_mic_permission_change_in_device_settings` |
+| **Primary Button** | Continue | `continue` |
+| **Secondary Button** | Not now | `not_now` |
+
+#### ⚙️ Info.plist (iOS)
+
+Оба ключа должны быть прописаны:
+- `NSCameraUsageDescription`: `"This allows you to take photos and record videos to share in your profile and posts."`
+- `NSMicrophoneUsageDescription`: `"This allows you to record voice messages in chats and capture audio for your videos."`
+
+#### ⚙️ Логика Frontend
+
+```
+1. Пользователь впервые нажимает «Снять видео» для поста
+       │
+       ▼
+2. Проверить статус обоих разрешений (Camera + Microphone):
+       │
+       ├── Оба = NOT_DETERMINED:
+       │   → Показать ОДИН общий экран с объяснением (Шаг 1)
+       │       ├── «Continue» → вызвать ДВА системных диалога последовательно:
+       │       │   1️⃣ Camera: Allow / Don't Allow
+       │       │   2️⃣ Microphone: Allow / Don't Allow
+       │       │       ├── Оба Allow → снять видео
+       │       │       └── Любой Don't Allow → вернуть назад
+       │       └── «Not now» → закрыть, действие прервано
+       │
+       ├── Один DENIED, другой NOT_DETERMINED:
+       │   → Показать экран для недостающего разрешения
+       │
+       └── Оба DENIED:
+           → Экран с [Go to Settings] → Deep Link в настройки
+```
+
+#### 💾 Backend / База данных
+
+> **НЕ нужно записывать в `legal_consents_log`.** Контролируется ОС.
 
 ---
 
@@ -964,21 +1001,32 @@ function checkCountryAccess(countryCode) {
 | **Primary Button** | Continue | `continue` |
 | **Secondary Button** | Not now | `not_now` |
 
+#### ⚙️ Info.plist (iOS)
+
+Ключ: `NSPhotoLibraryUsageDescription`
+Значение: `"This allows you to select photos and videos from your library to attach to your posts and messages."`
+
 #### ⚙️ Логика Frontend
 
 ```
 1. Пользователь впервые нажимает «Выбрать из галереи»
        │
        ▼
-2. Показать наш экран с объяснением (Prominent Disclosure)
+2. Проверить статус разрешения ОС:
        │
-       ├── «Continue» → вызвать системное окно:
-       │   «"Bestme" Would Like to Access Your Photos: Allow / Don't Allow»
-       │       │
-       │       ├── Allow → открыть галерею, продолжить
-       │       └── Don't Allow → вернуть на предыдущий экран
+       ├── Статус = NOT_DETERMINED:
+       │   → Показать наш экран с объяснением (Шаг 1)
+       │       ├── «Continue» → вызвать системный диалог (Шаг 2)
+       │       │       ├── Allow → открыть галерею
+       │       │       └── Don't Allow → вернуть назад
+       │       └── «Not now» → закрыть, действие прервано
        │
-       └── «Not now» → закрыть, вернуть на предыдущий экран, действие прервано
+       └── Статус = DENIED:
+           → Показать экран с изменённым UI:
+               Текст: "You previously declined photo library access.
+                       Please enable it in your device settings to
+                       upload photos and videos."
+               Кнопка: [Go to Settings] → Deep Link в настройки приложения
 ```
 
 #### 💾 Backend / База данных
@@ -1314,9 +1362,11 @@ ATT **обязателен**, если хотя бы одно:
    and the deletion will be canceled."
        │
        ▼
-5. Apple ID Token Revocation (если вход через Apple):
-   → POST https://appleid.apple.com/auth/revoke
-   (см. раздел ниже)
+5. Token Revocation (в зависимости от способа регистрации):
+   - Apple ID → POST https://appleid.apple.com/auth/revoke
+   - Google   → POST https://oauth2.googleapis.com/revoke
+   - Facebook → DELETE https://graph.facebook.com/{user-id}/permissions
+   (подробности в разделах ниже)
        │
        ▼
 6. Ежедневный Cron Job проверяет:
@@ -1345,6 +1395,37 @@ ATT **обязателен**, если хотя бы одно:
 | **Ожидаемый ответ** | `200 OK` — токен аннулирован |
 
 > 📎 Документация Apple: [Sign in with Apple REST API - Revoke Token](https://developer.apple.com/documentation/sign_in_with_apple/revoke_tokens)
+
+#### 🔵 Google Token Revocation (ОБЯЗАТЕЛЬНО для Sign in with Google)
+
+> При удалении аккаунта, созданного через **Sign in with Google**, Backend должен отозвать токен авторизации через Google API.
+
+**Когда:** В момент перехода в статус `scheduled_for_deletion`, если пользователь регистрировался через Google.
+
+**Что делать:**
+
+| Параметр | Значение |
+|---|---|
+| **Endpoint** | `POST https://oauth2.googleapis.com/revoke` |
+| **Content-Type** | `application/x-www-form-urlencoded` |
+| `token` | `access_token` или `refresh_token` пользователя (сохранён при регистрации) |
+| **Ожидаемый ответ** | `200 OK` — токен аннулирован |
+
+> 📎 Документация Google: [Revoking a token](https://developers.google.com/identity/protocols/oauth2/web-server#tokenrevoke)
+
+#### 📘 Facebook Token Revocation (если используется Sign in with Facebook)
+
+> При удалении аккаунта, созданного через **Facebook Login**, Backend должен удалить разрешения через Graph API.
+
+**Что делать:**
+
+| Параметр | Значение |
+|---|---|
+| **Endpoint** | `DELETE https://graph.facebook.com/{user-id}/permissions` |
+| **Headers** | `Authorization: Bearer {user_access_token}` |
+| **Ожидаемый ответ** | `{"success": true}` |
+
+> 📎 Документация Facebook: [Deleting Permissions](https://developers.facebook.com/docs/facebook-login/permissions/requesting-and-revoking#revoking)
 
 #### 🌐 Веб-форма удаления данных (ОБЯЗАТЕЛЬНО для Google Play)
 
