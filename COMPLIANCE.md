@@ -58,7 +58,8 @@
 > |---|---|---|---|
 > | 1 | Добавить **disclaimer** в Terms of Service | Раздел «AI и автоматизация» | [EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj) — прозрачность: пользователь должен знать что контент проверяется AI |
 > | 2 | Добавить **disclaimer** в Privacy Policy | Раздел «Автоматические решения» | GDPR Art. 22 — право не быть объектом решения, основанного исключительно на автоматизированной обработке |
-> | 3 | Показать **пометку** на проверенном контенте | В UI рядом с постом: «ℹ️ Проверено AI — это автоматическая проверка, не гарантия» | Прозрачность |
+> | 3 | ~~Показать **пометку** на проверенном контенте~~ | ~~В UI рядом с постом: «ℹ️ Проверено AI — это автоматическая проверка, не гарантия»~~ | ~~Прозрачность~~ |
+> | | | **⚠️ НЕ НУЖНО!** Плашку «ℹ️ Проверено AI» **НЕ** нужно показывать в интерфейсе рядом с каждым постом. Достаточно раскрыть использование AI в ToS и Privacy Policy (пункты 1 и 2 выше). Это НЕ требование закона — показывать значок на каждом посте. | |
 > | 4 | **Обжалование** | Если AI удалил/скрыл контент → пользователь может подать Appeal (уже есть в DSA Art. 20) | DSA Art. 20 |
 >
 > **Текст disclaimer (для ToS):**
@@ -336,7 +337,7 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
 | 21 | **Health claims без disclaimer** | Apple §1.4.1 | Если есть контент о здоровье → disclaimer «Не является медицинской рекомендацией» | Apple | [Apple §1.4.1](https://developer.apple.com/app-store/review/guidelines/) |
 | | **💰 ПОКУПКИ И ПЛАТЕЖИ** | | | | |
 | 22 | **Встроенные покупки в обход магазина** (на iOS) | Apple §3.1.1 — обязательно через In-App Purchase | Если есть подписки/покупки на iOS → только через Apple IAP (комиссия 15-30%) | Apple | [Apple §3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase) |
-| 23 | **Ссылки на внешнюю оплату** (на iOS) | Apple §3.1.1 | НЕ давать ссылки «купи на нашем сайте» из iOS-приложения | Apple | — |
+| 23 | **Ссылки на внешнюю оплату** (на iOS) | Apple §3.1.1 | НЕ давать ссылки «купи на нашем сайте» из iOS-приложения. **⚠️ НО:** Если **бизнес-профиль** (пользовательский UGC-контент) добавляет свои ссылки, PDF с ценами или квалификацией — это **НЕ нарушение** §3.1.1. Apple запрещает **приложению** (разработчику) направлять пользователей на внешнюю оплату, но **НЕ запрещает** пользователям (бизнесам) публиковать свои собственные ссылки в своих профилях. Бизнес-профиль = UGC, разработчик не несёт ответственности за содержимое ссылок бизнес-пользователя. | Apple | — |
 | | **🔧 ПРОЧЕЕ** | | | | |
 | 24 | **Спам / скам / мошенничество** | Обе платформы | Реальное приложение с реальной функциональностью | Оба | — |
 | 25 | **Копия/клон другого приложения** | Apple §4.1, Google | Приложение должно быть уникальным, не клоном | Оба | — |
@@ -992,51 +993,104 @@ function checkCountryAccess(countryCode) {
 |---|---|
 | **Цель** | Получить разрешение на отслеживание (IDFA) на iOS |
 | **Закон** | [Apple App Store §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) · [App Tracking Transparency (ATT)](https://developer.apple.com/documentation/apptrackingtransparency) |
-| **Когда** | При первом запуске на iPhone/iPad с iOS 14.5+, если используются SDK аналитики/рекламы (Facebook Ads, Google Ads, Amplitude, Mixpanel и т.п.) |
-| **Реализация** | Системный iOS диалог через `NSUserTrackingUsageDescription` |
-| **Обязательность** | **Без этого диалога App Store НЕ пропустит приложение** |
+| **Платформа** | **Только iOS** (для Android эта задача не актуальна — у них свои механизмы) |
+| **Приоритет** | **Высокий** — блокер для релиза, если внедрены маркетинговые SDK |
+| **Когда** | При первом запуске на iPhone/iPad с iOS 14.5+, если используются SDK аналитики/рекламы (Facebook Ads, Google Ads, AppsFlyer, Adjust, Branch, Amplitude, Mixpanel и т.п.) |
+| **Реализация** | Паттерн Permission Priming (2 шага): наш экран объяснения → системный iOS диалог |
+| **Обязательность** | **Без этого диалога App Store НЕ пропустит приложение** (если используются трекинговые SDK) |
 | **Блокировка** | Пользователь должен явно выбрать (Allow / Ask App Not to Track). Без ответа доступ к IDFA невозможен |
 
-#### 🖥️ Frontend тексты
+#### 🟢 Когда ATT НЕ нужен (можно вычеркнуть из ТЗ)
+
+ATT **не нужен**, если одновременно выполняются ВСЕ условия:
+- ❌ Нет рекламных баннеров внутри Bestme
+- ❌ Нет Facebook SDK / AppsFlyer / Adjust / Branch (маркетинговые трекеры)
+- ✅ Аналитика (Firebase / Apple Analytics) используется **только для себя** (сколько зарегистрировалось, сколько крашей) и данные **НЕ передаются** другим компаниям
+
+#### 🔴 Когда ATT ОБЯЗАТЕЛЕН (даже без рекламы в приложении)
+
+ATT **обязателен**, если хотя бы одно:
+- ✅ Встроен **Facebook SDK** (например, кнопка «Войти через Facebook» — SDK «втихаря» передаёт данные Meta)
+- ✅ Закупается реклама Bestme в Instagram/TikTok и используются трекеры (**AppsFlyer, Adjust, Branch**) для измерения эффективности рекламных кампаний
+- ✅ Любой SDK, который передаёт IDFA (Identifier for Advertisers) третьим лицам
+
+> **Вывод для MVP:** Если запускаете «чистую» версию без маркетинговых трекеров — ATT можно отложить. Когда маркетологи попросят прикрутить трекеры → программисты добавят ATT за пару дней в следующем обновлении.
+
+#### 🛑 Главные правила Apple (Anti-Reject)
+
+| # | Правило | Что запрещено | Что будет |
+|---|---|---|---|
+| 1 | **Запрет на блокировку (Gating)** | НЕ ИМЕЕМ ПРАВА закрывать доступ к приложению или урезать функционал (чат, посты, фото), если пользователь нажмёт «Запретить отслеживание» | **Отказ в публикации** |
+| 2 | **Запрет на подкуп (Incentivizing)** | НЕ ИМЕЕМ ПРАВА предлагать бонусы (например: «Дадим 100 очков рейтинга, если разрешишь отслеживание») | **Отказ в публикации** |
+| 3 | **Строгий тайминг** | Запрос ATT должен показываться **ДО** инициализации рекламных/аналитических SDK (Facebook SDK, AppsFlyer, Firebase Analytics с трекингом) | **Блокировка приложения** |
+
+#### 🖥️ Frontend — UI и Логика (Permission Priming)
+
+**Триггер:** Показ этого флоу один раз при **самом первом запуске** приложения после успешной регистрации/авторизации.
+
+**Шаг 1. Наш экран объяснения (Prominent Disclosure / Pre-prompt):**
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Title** | Make Bestme better for you | `att_priming_title` |
+| **Body** | We use tracking technology to understand what you like and show you relevant content and personalized ads. This helps us keep the app free and improve your experience. We never sell your personal messages or photos. | `att_priming_body` |
+| **Primary Button** | Continue | `att_priming_continue` |
+
+> На этом экране **НЕ ДОЛЖНО** быть кнопок «Разрешить» или «Запретить» — только «Continue» к системному окну, либо крестик закрытия окна.
+
+**Шаг 2. Системный диалог ATT (System Prompt):**
+
+После нажатия [Continue] на Шаге 1, iOS-разработчик вызывает `requestTrackingAuthorization(completionHandler:)`. Поверх нашего экрана появляется стандартное системное окно Apple.
 
 **Info.plist (обязательный ключ):**
 
 | Элемент | Текст (EN) | Ключ |
 |---|---|---|
-| `NSUserTrackingUsageDescription` | Bestme uses your data to improve feed personalization and in-app analytics. You can withdraw consent anytime in iPhone Settings → Bestme. | `data_usage_personalization_analytics` + `withdraw_consent_iphone_settings_bestme` |
+| `NSUserTrackingUsageDescription` | This identifier will be used to deliver personalized ads to you and measure the effectiveness of our marketing campaigns. | `att_tracking_usage_description` |
 
 > iOS автоматически подставит этот текст в системный pop-up.
-
-**Soft prompt (наш собственный экран ПЕРЕД системным, рекомендуется для повышения % согласий):**
-
-| Элемент | Текст (EN) | Ключ перевода |
-|---|---|---|
-| **Title** | Help us improve your Bestme experience | `help_improve_bestme_experience` |
-| **Body** | To provide you with more relevant content and analytics, we'll ask for permission to use app activity data. You're in control and can revoke this later in iPhone Settings. | `permission_use_app_activity_data` + `revoke_later_in_iphone_settings` |
-| **Primary Button** | OK | `ok` |
-| **Secondary Button** | Learn more | `learn_more` |
 
 #### ⚙️ Логика Frontend
 
 ```
-1. Первый запуск приложения на iOS 14.5+
+1. Первый запуск приложения на iOS 14.5+ (после регистрации/авторизации)
        │
        ▼
-2. (Опционально) Показать наш soft prompt
+2. Проверить текущий статус: ATTrackingManager.trackingAuthorizationStatus
        │
-       ├── «OK» → перейти к шагу 3
-       └── «Learn more» → показать подробности → потом к шагу 3
+       ├── .restricted или .denied (уже запрещено ранее или глобально в настройках)
+       │      └── ПРОПУСКАЕМ ВЕСЬ ФЛОУ → не показываем Шаг 1 и Шаг 2
+       │         └── Молча не запускаем трекинговые SDK
+       │         └── Пускаем пользователя в приложение
+       │
+       └── .notDetermined (ещё не спрашивали)
               │
               ▼
-3. Вызвать системный ATT диалог:
+3. Показать наш экран объяснения (Шаг 1 — Pre-prompt)
+       │
+       ├── «Continue» → перейти к Шагу 2
+       └── Крестик / свайп → перейти к Шагу 2
+              │
+              ▼
+4. Вызвать системный ATT диалог (Шаг 2):
    ATTrackingManager.requestTrackingAuthorization()
        │
-       ├── .authorized → IDFA доступен, analytics_tracking = true
-       ├── .denied → IDFA НЕ доступен, analytics_tracking = false
+       ├── .authorized → IDFA доступен → РАЗРЕШАЕМ старт маркетинговых SDK
+       │      (Facebook, AppsFlyer и т.д.)
+       │
+       ├── .denied → IDFA НЕ доступен → БЛОКИРУЕМ передачу IDFA
+       │      Приложение продолжает работать как обычно (полный функционал!)
+       │
        └── .notDetermined → ещё не решил (ждём)
 ```
 
 > **⚠️ ЗАПРЕЩЕНО** использовать IDFA без явного согласия. Это приводит к **блокировке приложения** в App Store.
+
+#### 🔄 Альтернативный сценарий (Restricted / Denied в настройках ОС)
+
+У некоторых пользователей в настройках iPhone (**Настройки → Конфиденциальность → Отслеживание**) может быть глобально выключен тумблер «Разрешить приложениям запрашивать отслеживание». В этом случае iOS вообще не даст показать окно ATT.
+
+**Логика:** При запуске проверяем `trackingAuthorizationStatus`. Если `restricted` или `denied` → **ПРОПУСКАЕМ весь флоу**, молча не запускаем трекинговые SDK и пускаем пользователя в приложение. **НЕ нужно** просить пойти в настройки и включить трекинг.
 
 #### 💾 Backend / База данных
 
@@ -1159,13 +1213,159 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-### 🔴 ПОТОК 9: Delete Account (GDPR Art. 17(2)) — 🚧 В РАЗРАБОТКЕ
+### 🔴 ПОТОК 9: Delete Account (GDPR Art. 17 + Apple §5.1.1(v))
 
 | | |
 |---|---|
-| **Цель** | Дать пользователю возможность удалить аккаунт с объяснением де-индексации |
-| **Закон** | [GDPR Art. 17(2)](https://gdpr-info.eu/art-17-gdpr/) — право на удаление + уведомление третьих лиц · [Apple Account Deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/) |
-| **Статус** | 🚧 В процессе разработки — тексты и логика будут добавлены позже |
+| **Цель** | Дать пользователю возможность полностью удалить аккаунт изнутри приложения |
+| **Закон** | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) — право на удаление · [GDPR Art. 17(2)](https://gdpr-info.eu/art-17-gdpr/) — уведомление третьих лиц · [Apple Account Deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/) · [Apple §5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) · [Google Account Deletion](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en) |
+| **Платформы** | iOS, Android, Backend |
+| **Приоритет** | **Критический (Blocker для релиза)** — без этого Apple и Google **ЗАБАНЯТ** приложение |
+| **Когда** | Доступно в любой момент: Settings (Настройки) → Account (Аккаунт) → Delete Account |
+
+#### 🛑 Главные правила (Anti-Reject)
+
+| # | Правило | Что запрещено | Что будет |
+|---|---|---|---|
+| 1 | **Никаких писем в поддержку** | Запрещено просить пользователя писать на email для удаления профиля | **Отказ в публикации** |
+| 2 | **Никаких ссылок на сайт** | Процесс должен начинаться и завершаться **строго внутри** мобильного приложения | **Отказ в публикации** |
+| 3 | **Прозрачность 30 дней** | Пользователь **ДОЛЖЕН** быть прямо в UI предупреждён, что полное физическое удаление займёт 30 дней | Apple §5.1.1(v) |
+| 4 | **Легко доступно** | Максимум 2-3 клика: Настройки → Аккаунт → Удалить. НЕ скрывать кнопку | Apple §5.1.1(v) |
+
+#### 📱 Задача для Frontend (UI/UX & Логика экранов)
+
+**Путь к кнопке:** Settings (Настройки) ➡️ Account (Аккаунт) ➡️ Кнопка **красного цвета** `Delete Account` (в самом низу).
+
+**User Flow:**
+
+```
+1. Пользователь нажимает [Delete Account] (красная кнопка)
+       │
+       ▼
+2. Шаг безопасности:
+   Приложение запрашивает подтверждение личности:
+   - Ввод пароля от аккаунта Bestme
+   - ИЛИ системный Face ID / Touch ID / PIN-код телефона
+   Если проверка НЕ пройдена → процесс прерывается
+       │
+       ▼
+3. Окно предупреждения (Alert):
+   ┌──────────────────────────────────────────────┐
+   │  Delete Account?                              │
+   │                                               │
+   │  Are you sure you want to delete your         │
+   │  account? Your profile, photos, and posts     │
+   │  will be hidden immediately and permanently   │
+   │  deleted in 30 days. If you change your       │
+   │  mind, just log in again before then.         │
+   │                                               │
+   │  [Cancel]              [Delete] (красная)     │
+   └──────────────────────────────────────────────┘
+       │
+       ├── «Cancel» → закрыть, ничего не делать
+       │
+       └── «Delete» → отправить запрос на Backend
+              │
+              ▼
+4. Разлогинить пользователя (Clear session)
+   → перекинуть на стартовый экран (Вход/Регистрация)
+```
+
+**Frontend тексты и ключи переводов:**
+
+| Элемент | Текст (EN) | Ключ перевода |
+|---|---|---|
+| **Button** | Delete Account | `delete_account` |
+| **Alert Title** | Delete Account? | `delete_account_confirm_title` |
+| **Alert Body** | Are you sure you want to delete your account? Your profile, photos, and posts will be hidden immediately and permanently deleted in 30 days. If you change your mind, just log in again before then. | `delete_account_confirm_body` |
+| **Cancel Button** | Cancel | `cancel` |
+| **Delete Button** | Delete | `delete_confirm` |
+
+#### ⚙️ Задача для Backend (Логика «Мягкого удаления» и писем)
+
+Аккаунт **НЕ удаляется физически** из БД в ту же секунду. Внедряем **30-дневный Grace Period** (Заморозку).
+
+**Backend Flow:**
+
+```
+1. Получен запрос на удаление от Frontend
+       │
+       ▼
+2. Изменить статус пользователя в БД:
+   status = "scheduled_for_deletion"
+   deletion_requested_at = NOW()
+   deletion_scheduled_for = NOW() + 30 days
+       │
+       ▼
+3. Изоляция данных (НЕМЕДЛЕННО):
+   - Профиль пользователя → НЕВИДИМ для всех
+   - Посты, комментарии, аватарка → СКРЫТЫ
+   - В поиске НЕ выдаётся
+   - Прямые ссылки → «Пользователь не найден»
+       │
+       ▼
+4. Отправить email пользователю:
+   Тема: "Bestme Account Deletion Request"
+   Текст: "Hello! Your Bestme account is scheduled for
+   deletion. It will be completely erased in 30 days.
+   If this wasn't you, or if you changed your mind,
+   simply log back into the app before [ДАТА],
+   and the deletion will be canceled."
+       │
+       ▼
+5. Apple ID Token Revocation (если вход через Apple):
+   → POST https://appleid.apple.com/auth/revoke
+   (см. раздел ниже)
+       │
+       ▼
+6. Ежедневный Cron Job проверяет:
+   Если прошло 30 дней и юзер НЕ заходил
+   → Hard Delete: навсегда стереть ВСЕ данные из базы
+```
+
+**Восстановление (Cancel Deletion):** Если пользователь **логинится** в приложение до истечения 30 дней → статус `scheduled_for_deletion` **снимается**, аккаунт снова полностью активный (посты, профиль — всё видно).
+
+#### 🍏 Apple ID Token Revocation (ОБЯЗАТЕЛЬНО для Sign in with Apple)
+
+> Согласно правилам Apple, при удалении аккаунта, который был создан через **Sign in with Apple**, мы **обязаны** программно отозвать токен авторизации через Apple REST API.
+
+**Когда:** В момент перехода в статус `scheduled_for_deletion`, если пользователь регистрировался через Apple ID.
+
+**Что делать:**
+
+| Параметр | Значение |
+|---|---|
+| **Endpoint** | `POST https://appleid.apple.com/auth/revoke` |
+| **Content-Type** | `application/x-www-form-urlencoded` |
+| `client_id` | App ID нашего приложения (без Team ID) |
+| `client_secret` | JWT, подписанный приватным ключом разработчика Apple |
+| `token` | `refresh_token` или `access_token` пользователя (сохранён при регистрации) |
+| `token_type_hint` | `refresh_token` или `access_token` |
+| **Ожидаемый ответ** | `200 OK` — токен аннулирован |
+
+> 📎 Документация Apple: [Sign in with Apple REST API - Revoke Token](https://developer.apple.com/documentation/sign_in_with_apple/revoke_tokens)
+
+#### 🌐 Веб-форма удаления данных (ОБЯЗАТЕЛЬНО для Google Play)
+
+> Google Play с декабря 2023 **требует** помимо кнопки в приложении ещё и **веб-страницу** для запроса удаления данных (для тех кто уже удалил приложение).
+
+**URL:** `bestme.app/delete-account`
+
+**Форма:** Пользователь вводит email → получает письмо с кодом подтверждения → подтверждает удаление → аккаунт уходит в `scheduled_for_deletion` (те же 30 дней).
+
+**Указать ссылку в:** Play Console → Data Safety → Data deletion.
+
+#### 💾 Backend / База данных
+
+| Поле | Значение |
+|---|---|
+| `users.status` | `active` / `scheduled_for_deletion` / `deleted` |
+| `users.deletion_requested_at` | Timestamp запроса на удаление |
+| `users.deletion_scheduled_for` | Timestamp физического удаления (запрос + 30 дней) |
+
+| Cron Job | Что делает |
+|---|---|
+| `daily_account_cleanup` | Ежедневно: найти аккаунты где `deletion_scheduled_for < NOW()` и `status = scheduled_for_deletion` → **Hard Delete** всех данных |
 
 ---
 
@@ -1181,6 +1381,7 @@ function checkCountryAccess(countryCode) {
 | **ПОТОК 6** ATT (iOS) | ❌ НЕТ | Контролируется iOS |
 | **ПОТОК 7** SMS Consent | ✅ **ДА** (в отдельной таблице) | TCPA требует доказательство согласия |
 | **ПОТОК 8** Cookie Consent | ❌ НЕТ | Хранится в localStorage/cookie браузера |
+| **ПОТОК 9** Delete Account | ✅ **ДА** (в таблице `users`) | `users.status`, `deletion_requested_at`, `deletion_scheduled_for` + email уведомление + Apple Token Revoke |
 
 ---
 
@@ -1949,7 +2150,7 @@ Email: [email]
 | 6 | **ATT (iOS)** | Первый запуск iOS 14.5+ | ✅ Системный диалог | Нет | ❌ (iOS хранит) | [Apple §5.1.2(i)](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
 | 7 | **SMS Consent (TCPA)** | Добавление/изменение телефона | ✅ Нужно согласие | ☐ НЕ pre-checked | ✅ (отдельная таблица) | [TCPA §227(b)](https://www.law.cornell.edu/uscode/text/47/227) |
 | 8 | **Cookie Consent** | Первый визит на веб-сайт | ❌ Можно отказаться | ☐ НЕ pre-checked (analytics/ads) | ❌ (localStorage) | [ePrivacy 2002/58/EC](https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX%3A32002L0058) · [GDPR Art. 7](https://gdpr-info.eu/art-7-gdpr/) |
-| 9 | **Delete Account** | В настройках (Settings) | — | — | 🚧 В разработке | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) · [Apple](https://developer.apple.com/support/offering-account-deletion-in-your-app/) |
+| 9 | **Delete Account** | В настройках (Settings → Account) | — | — | ✅ `users.status` + email + Apple Token Revoke | [GDPR Art. 17](https://gdpr-info.eu/art-17-gdpr/) · [Apple §5.1.1(v)](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
 
 ---
 
@@ -2038,6 +2239,11 @@ Email: [email]
 | 5 | `users.dob_encrypted` (зашифрованная дата YYYY-MM-DD) | Полная дата рождения (encryption at rest, AES-256). Цели: проверка возраста, бонусы на ДР, персонализация | GDPR Art. 32 |
 | 6 | `users.age_bracket` ("18+") | Результат проверки DOB (открытое поле, быстрый доступ) | — |
 | 7 | `users.country` (код страны) | GeoIP результат | — |
+| 8 | `users.status` (`active` / `scheduled_for_deletion` / `deleted`) | Статус аккаунта (мягкое удаление, 30-дневный grace period) | GDPR Art. 17 · Apple §5.1.1(v) |
+| 9 | `users.deletion_requested_at` (timestamp) | Дата запроса на удаление аккаунта | GDPR Art. 17 |
+| 10 | `users.deletion_scheduled_for` (timestamp) | Дата физического удаления (запрос + 30 дней) | GDPR Art. 17 |
+| 11 | Cron Job: `daily_account_cleanup` | Ежедневно: аккаунты где `deletion_scheduled_for < NOW()` → **Hard Delete** | GDPR Art. 17 |
+| 12 | Cron Job: `daily_birthday_check` | Ежедневно: расшифровать DOB → найти именинников → бонусы + Push | Бизнес-логика |
 
 ---
 
