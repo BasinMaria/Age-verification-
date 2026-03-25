@@ -480,7 +480,7 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
    │   6. Сохранить в базу:
    │      { email, name, password_hash,
    │        dob_encrypted: "AES(1990-05-15)",
-   │        age_bracket: "18+",
+   │        age_bracket: "25-34",
    │        country: "US" }
    │         │
    │         ▼
@@ -573,7 +573,7 @@ Privacy Policy нужна на EN + основные языки (DE, FR, ES, IT,
    │         ▼
    │   6. Сохранить в базу:
    │      { email, name, dob_encrypted: "AES(1990-05-15)",
-   │        age_bracket: "18+", country: "US" }
+   │        age_bracket: "25-34", country: "US" }
    │      DOB хранится в ЗАШИФРОВАННОМ виде (encryption at rest, GDPR Art. 32)
    │         │
    │         ▼
