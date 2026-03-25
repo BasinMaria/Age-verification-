@@ -711,7 +711,7 @@ function checkCountryAccess(countryCode) {
 | `user_id` | ID пользователя |
 | `consent_type` | `privacy_defaults_acknowledged` |
 | `consent_version` | `2.0` (версия текста — изменена с 1.0 т.к. текст обновлён) |
-| `profile_visibility_chosen` | `"private"` или `"public"` (что выбрал пользователь) |
+| `profile_visibility_chosen` | `"private"` или `"public"` (что выбрал пользователь НА МОМЕНТ регистрации — аудит, даже если потом изменит в настройках) |
 | `consented_at` | Timestamp (UTC) |
 | `ip_address` | IP пользователя (для GDPR proof) |
 
