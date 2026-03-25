@@ -592,7 +592,7 @@ function checkCountryAccess(countryCode) {
   │ + DOB → проверка возраста (Секция 4)     │
   └────────────────┬────────────────────────┘
                    ▼
-  ПОТОК 1: GDPR Welcome Screen
+  ПОТОК 1: Welcome Screen (Privacy Defaults + Profile Choice)
   (один раз, автоматически, ПЕРЕД лентой)
   Платформы: iOS + Android
                    │
@@ -640,58 +640,95 @@ function checkCountryAccess(countryCode) {
 
 ---
 
-### 🔵 ПОТОК 1: GDPR Privacy Defaults — Welcome Screen
+### 🔵 ПОТОК 1: Welcome Screen — Privacy Defaults + Profile Visibility Choice
 
 | | |
 |---|---|
-| **Цель** | Уведомить пользователя о видимости профиля по умолчанию |
-| **Закон** | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) — «Data protection by default» |
+| **Цель** | 1) Проинформировать пользователя, что его профиль ПРИВАТНЫЙ по умолчанию (требование CAADCA). 2) Дать ему ВЫБОР сделать профиль публичным (наша бизнес-цель: соцсеть лучше работает с публичными профилями). 3) Показать ссылки на ToS и Privacy Policy |
+| **Закон** | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) — «Data protection by default» + [CAADCA (AB 2273)](https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB2273) — «максимальные настройки приватности по умолчанию» |
+| **Платформы** | iOS и Android — одинаковый экран на обеих платформах |
 | **Триггер** | Показывается **1 раз** сразу после успешной регистрации, **ПЕРЕД** лентой (Feed) |
-| **Блокировка** | Пользователь **НЕ МОЖЕТ** пользоваться приложением, пока не нажмёт кнопку согласия |
-| **Важно** | После нажатия → переход на Feed (ленту), больше не показывается |
+| **Блокировка** | Пользователь **НЕ МОЖЕТ** пользоваться приложением, пока не нажмёт кнопку «I understand, continue». Нельзя закрыть, нельзя свайпнуть, нет кнопки «назад» |
+| **После нажатия** | Переход на Feed (лента). Экран больше **НИКОГДА** не показывается этому пользователю |
 
-#### 🖥️ Frontend тексты и ключи переводов
+#### 🖥️ Frontend: тексты, ключи переводов, что нарисовать дизайнеру
 
-| Элемент | Текст (EN) | Ключ перевода |
-|---|---|---|
-| **Title** | Welcome to Bestme | `welcome_to_bestme` |
-| **Body 1** | Your profile is visible to other users by default. | `profile_visible_by_default` |
-| **Body 2** | This means your name, photos, and public posts can be seen by all members of the platform. | `name_photos_posts_visible` |
-| **Body 3** | You can change this at any time in Settings → [Privacy & Visibility]. | `change_in_settings_privacy_visibility` |
-| **Body 4** | Your email, phone number, and date of birth are ALWAYS hidden from other users. | `email_phone_dob_always_hidden` |
-| **Primary Button** | I understand, continue | `i_understand_continue` |
-| **Footer** | By continuing, you agree to our [Terms of Service] and [Privacy Policy]. | `by_continuing_agree_terms_privacy` |
+| Элемент | Текст (EN) | Ключ перевода | Заметка для дизайнера |
+|---|---|---|---|
+| **Title** | Welcome to Bestme | `welcome_to_bestme` | Крупный заголовок, вверху экрана |
+| **Body 1** | Your profile is **private** by default. Only your username is visible to others. | `profile_private_by_default` | Жирным выделить "private" |
+| **Body 2** | Your email, phone number, and date of birth are **always** hidden from other users. | `email_phone_dob_always_hidden` | Жирным выделить "always" |
+| **Toggle** | Make my profile public (your name, photos, and posts will be visible to all members) | `make_profile_public_toggle` | Toggle/switch — **ВЫКЛЮЧЕН по умолчанию** (OFF). При включении: `profile_visibility = "public"`. При выключении: остаётся `"private"` |
+| **Подпись под toggle** | You can change this at any time in Settings → [Privacy & Visibility] | `change_in_settings_privacy_visibility` | Мелкий текст под toggle. `[Privacy & Visibility]` = ссылка → открывает настройки приватности |
+| **Primary Button** | I understand, continue | `i_understand_continue` | Кнопка работает и с toggle ON и с toggle OFF |
+| **Footer** | By continuing, you acknowledge our [Terms of Service] and [Privacy Policy]. | `by_continuing_acknowledge_terms_privacy` | Мелкий текст. `[Terms of Service]` и `[Privacy Policy]` = кликабельные ссылки → открывают соответствующие документы |
 
-> **Примечание:** `[Privacy & Visibility]`, `[Terms of Service]`, `[Privacy Policy]` — это ссылки внутри текста.
+> **Почему "acknowledge" а не "agree":**
+> - ToS и Privacy Policy = ИНФОРМИРОВАНИЕ (пользователь ознакомлен).
+> - Согласие на обработку данных (GDPR consent) пользователь уже дал при регистрации (DOB microcopy + checkbox).
+> - "Acknowledge" = «я ознакомлен» — это безопаснее юридически, чем "agree" (не создаёт дополнительных обязательств).
+> - Если юрист скажет вернуть "agree" — это тоже допустимо, т.к. ToS = договор (GDPR Art. 6(1)(b)), а не consent.
 
-#### ⚙️ Логика Frontend
+#### ⚙️ Логика Frontend (для программиста)
 
 ```
 1. Пользователь завершил регистрацию (DOB проверен, >= 18)
        │
        ▼
-2. Показать Welcome Screen (ПОТОК 1)
-   Экран блокирует навигацию — нельзя закрыть, нельзя перейти куда-либо
+2. Backend создаёт пользователя с profile_visibility = "private"  ← ОБЯЗАТЕЛЬНО (CAADCA)
        │
        ▼
-3. Пользователь нажимает «I understand, continue»
+3. Показать Welcome Screen (ПОТОК 1)
+   • Экран блокирует навигацию — нельзя закрыть, нельзя перейти куда-либо
+   • Toggle «Make my profile public» = OFF по умолчанию
        │
        ▼
-4. Записать согласие в backend → перейти на Feed (лента)
+4. Пользователь нажимает «I understand, continue»
+       │
+       ├── Toggle был ON? → PATCH /api/users/me { profile_visibility: "public" }
+       │
+       └── Toggle был OFF? → Ничего не менять (остаётся "private")
+       │
+       ▼
+5. Записать событие в backend → перейти на Feed (лента)
    Экран больше НИКОГДА не показывается этому пользователю
 ```
 
+> **Важно для программиста:** Не показывать системный запрос разрешений (камера/фото/микрофон) на этом экране. Здесь нет запроса данных — только информирование. Разрешения запрашиваются позже, в контексте (ПОТОК 4).
+
 #### 💾 Backend / База данных
 
-В таблицу `legal_consents_log` записать:
+**1. Таблица `users`** — при регистрации:
+
+| Поле | Значение по умолчанию | Комментарий |
+|---|---|---|
+| `profile_visibility` | `"private"` | CAADCA: приватный по умолчанию. Меняется на `"public"` если toggle = ON |
+
+**2. Таблица `legal_consents_log`** — при нажатии «I understand, continue»:
 
 | Поле | Значение |
 |---|---|
 | `user_id` | ID пользователя |
 | `consent_type` | `privacy_defaults_acknowledged` |
-| `consent_version` | `1.0` (версия текста) |
+| `consent_version` | `2.0` (версия текста — изменена с 1.0 т.к. текст обновлён) |
+| `profile_visibility_chosen` | `"private"` или `"public"` (что выбрал пользователь) |
 | `consented_at` | Timestamp (UTC) |
 | `ip_address` | IP пользователя (для GDPR proof) |
+
+#### ❓ Юридические ответы
+
+**Q: Законно ли «уговаривать» пользователя сделать профиль публичным?**
+A: ✅ **ДА**, при условии что:
+- По умолчанию = PRIVATE (CAADCA compliance ✅)
+- Toggle = OFF по умолчанию (пользователь должен СОЗНАТЕЛЬНО включить) ✅
+- Нет dark patterns: кнопка «I understand, continue» работает одинаково и с toggle ON и с toggle OFF ✅
+- Нет наказания за выбор «private» (функционал одинаковый) ✅
+
+**Q: Законно ли НЕ давать пропустить этот экран?**
+A: ✅ **ДА**. GDPR Art. 25(2) ТРЕБУЕТ проинформировать пользователя о настройках приватности. Блокировка экрана = гарантия что пользователь проинформирован. Это стандартная практика (Pinterest, Instagram, TikTok делают то же самое).
+
+**Q: Футер "By continuing, you acknowledge our ToS and PP" — это законно?**
+A: ✅ **ДА**. ToS = контракт (GDPR Art. 6(1)(b)). Принятие контракта = обязательное условие использования сервиса. Privacy Policy = информирование (GDPR Art. 13) — не требует отдельного согласия, достаточно ссылки. Это НЕ forced consent — пользователь может не регистрироваться если не согласен.
 
 ---
 
@@ -1455,7 +1492,7 @@ ATT **обязателен**, если хотя бы одно:
 
 | Поток | Записывать в `legal_consents_log`? | Почему |
 |---|---|---|
-| **ПОТОК 1** GDPR Privacy Defaults | ✅ **ДА** | Нужно доказательство для GDPR (суд) |
+| **ПОТОК 1** Welcome Screen (Privacy Defaults + Profile Choice) | ✅ **ДА** | Нужно доказательство для GDPR + CAADCA (суд). Включает выбор `profile_visibility` |
 | **ПОТОК 2** UGC Community Guidelines | ✅ **ДА** | Нужно доказательство для Apple/Google и для модерации |
 | **ПОТОК 3** Push Notifications | ❌ НЕТ | Контролируется ОС (iOS/Android) |
 | **ПОТОК 4** Camera | ❌ НЕТ | Контролируется ОС |
@@ -2224,7 +2261,7 @@ Email: [email]
 
 | # | Поток | Триггер | Блокирует? | Чекбокс? | Записывать в БД? | Закон |
 |---|---|---|---|---|---|---|
-| 1 | **Welcome Screen** (GDPR Privacy Defaults) | После регистрации, ПЕРЕД лентой | ✅ ДА — нельзя пропустить | Нет | ✅ `legal_consents_log` | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) |
+| 1 | **Welcome Screen** (Privacy Defaults + Profile Choice) | После регистрации, ПЕРЕД лентой | ✅ ДА — нельзя пропустить | Нет (есть toggle для profile_visibility) | ✅ `legal_consents_log` | [GDPR Art. 25(2)](https://gdpr-info.eu/art-25-gdpr/) + [CAADCA](https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB2273) |
 | 2 | **UGC Community Guidelines** | Первая попытка создать контент | ✅ ДА — контент не публикуется | ☐ НЕ pre-checked | ✅ `legal_consents_log` | [Apple §1.2](https://developer.apple.com/app-store/review/guidelines/#user-generated-content) · [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en) |
 | 3 | **Push Notifications** | Онбординг / первая попытка пуша | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) · [Google User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) |
 | 4 | **Camera Permission** | Первое фото/видео | ❌ Можно пропустить | Нет | ❌ (ОС хранит) | Apple §5.1.1 · Google Prominent Disclosure |
