@@ -1927,16 +1927,23 @@ import { createClient } from '@supabase/supabase-js'
 
 // Ключ шифрования — в Supabase Edge Function Secrets
 // (Supabase Dashboard → Edge Functions → Secrets → DOB_ENCRYPTION_KEY)
-const ENCRYPTION_KEY = Deno.env.get('DOB_ENCRYPTION_KEY')! // 256-bit key
+const ENCRYPTION_KEY = Deno.env.get('DOB_ENCRYPTION_KEY')! // 256-bit key (ровно 32 символа hex)
 
 async function encryptDOB(dob: string): Promise<string> {
+  // ⚠️ Валидация ключа: должен быть ровно 32 байта (256 бит)
+  const keyBytes = new TextEncoder().encode(ENCRYPTION_KEY)
+  if (keyBytes.length !== 32) {
+    throw new Error('DOB_ENCRYPTION_KEY must be exactly 32 bytes (256 bits)')
+  }
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(ENCRYPTION_KEY).slice(0, 32),
+    keyBytes,
     { name: 'AES-GCM' },
     false,
     ['encrypt']
   )
+  // IV генерируется случайно для КАЖДОЙ операции шифрования
+  // (AES-GCM требует уникальный IV для каждого шифрования одним ключом)
   const iv = crypto.getRandomValues(new Uint8Array(12)) // 96-bit IV
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
@@ -1956,7 +1963,7 @@ async function decryptDOB(encryptedBase64: string): Promise<string> {
   const ciphertext = combined.slice(12)
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(ENCRYPTION_KEY).slice(0, 32),
+    new TextEncoder().encode(ENCRYPTION_KEY),  // должен быть ровно 32 байта (проверено при encrypt)
     { name: 'AES-GCM' },
     false,
     ['decrypt']
@@ -2023,6 +2030,12 @@ async function decryptDOB(encryptedBase64: string): Promise<string> {
 // Вызывается ОДИН РАЗ при регистрации, ДО шифрования DOB
 function calculateAgeBracket(dob: string): string {
   const birthDate = new Date(dob)           // "1990-05-15" → Date
+
+  // ⚠️ Валидация: проверить, что дата корректна
+  if (isNaN(birthDate.getTime())) {
+    throw new Error(`Invalid date of birth: ${dob}`)
+  }
+
   const today = new Date()
   let age = today.getFullYear() - birthDate.getFullYear()
 
