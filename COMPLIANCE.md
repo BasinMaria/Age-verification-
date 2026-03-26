@@ -60,6 +60,7 @@
 ## Содержание
 
 1. [🏪 ГЛАВНОЕ — Публикация в магазины (App Store + Google Play)](#1--главное--публикация-в-магазины-app-store--google-play)
+   - [👨‍💻 Что проверяют в КОДЕ при ревью (правила для разработчиков)](#-что-проверяют-в-коде-при-ревью-приложения-apple--google--правила-для-разработчиков)
 2. [✅ ОТКРЫТЫЕ СТРАНЫ — где хватает базовых 10 пунктов](#2--открытые-страны--где-хватает-базовых-10-пунктов)
 3. [⛔ ВСЁ ОСТАЛЬНОЕ — ЗАБЛОКИРОВАНО](#3--всё-остальное--заблокировано)
 4. [Форма даты рождения — при регистрации и через соцсети](#4-форма-даты-рождения--при-регистрации-и-через-соцсети)
@@ -153,6 +154,173 @@
 ║  а НЕ магазинов. Магазины опубликуют без них.                         ║
 ║                                                                       ║
 ╚═══════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+### 👨‍💻 Что проверяют в КОДЕ при ревью приложения (Apple + Google) — правила для разработчиков
+
+> **Это раздел для программистов.** Ниже — конкретные правила: что можно, что нельзя, что ломает публикацию.
+> Ревьюеры Apple и Google проверяют не только UI, но и **код, API, библиотеки, дизайн**.
+
+---
+
+#### 🔴 Запрещённые практики в коде — БАН при обнаружении
+
+| # | Что НЕЛЬЗЯ делать | Почему | Кто проверяет | Ссылка |
+|---|---|---|---|---|
+| 1 | **Вызывать Private API** (Apple) — любые undocumented методы UIKit, objc_msgSend к скрытым селекторам | Apple сканирует бинарник **автоматически** (static analysis). Находит вызовы _private selectors → **мгновенный отказ** | Apple автомат + ручной ревью | [Apple §2.5.1](https://developer.apple.com/app-store/review/guidelines/#software-requirements) |
+| 2 | **Загружать исполняемый код** после установки (кроме JavaScriptCore / WebKit) | Нельзя скачивать .dylib, .so, интерпретаторы, код через eval(). Исключение: JS в WebView, JavaScriptCore | Apple + Google | [Apple §2.5.2](https://developer.apple.com/app-store/review/guidelines/#software-requirements) |
+| 3 | **Использовать deprecated API** без fallback | Если API помечено deprecated → должен быть fallback на новый API. Приложение не должно крашиться | Apple + Google | [Apple §2.1](https://developer.apple.com/app-store/review/guidelines/#performance) |
+| 4 | **Запрашивать лишние permissions** | Если просишь Camera но нигде не используешь → отказ. Каждое разрешение должно быть обосновано | Apple + Google | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage), [Google Permissions](https://support.google.com/googleplay/android-developer/answer/9888170) |
+| 5 | **Отсутствие Purpose Strings** (iOS) | Каждое разрешение (камера, микрофон, фото, геолокация) **обязано** иметь текст в Info.plist объясняющий ЗАЧЕМ | Apple автомат | [Apple §5.1.1](https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage) |
+| 6 | **Собирать данные без раскрытия** | Если собираешь аналитику, отпечатки устройств, рекламные идентификаторы — и не указал в Privacy Policy / Data Safety → отказ | Apple + Google | [Apple §5.1.2](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing) |
+| 7 | **Fingerprinting** (Apple, с iOS 17) | Apple запретил **device fingerprinting** — нельзя собирать уникальную комбинацию характеристик устройства для идентификации | Apple | [Apple Required Reason API](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api) |
+| 8 | **Использовать Required Reason API без Privacy Manifest** (iOS) | С весны 2024: API вроде `UserDefaults`, `fileModificationDate`, `systemUptime`, `diskSpace` требуют указания причины в `PrivacyInfo.xcprivacy` | Apple автомат | [Apple Privacy Manifest](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files) |
+| 9 | **Краш при запуске** или на основных экранах | Если приложение крашится при review → мгновенный отказ. Тестировать на **реальных устройствах**, не только эмуляторе | Apple + Google | [Apple §2.1](https://developer.apple.com/app-store/review/guidelines/#performance) |
+| 10 | **Скрытые функции** (hidden features, A/B tests, remote config переключатели которые меняют поведение после ревью) | Apple проверяет: приложение при ревью = то же что получат пользователи. Если обнаружат «ревью-режим» → бан разработчика | Apple | [Apple §2.3.1](https://developer.apple.com/app-store/review/guidelines/#accurate-metadata) |
+
+---
+
+#### 🟢 Что МОЖНО и РЕКОМЕНДУЕТСЯ
+
+| # | Что можно | Пояснение |
+|---|---|---|
+| 1 | **Любые open-source библиотеки** (MIT, Apache, BSD) | Свободно. Проверить что лицензия не GPL (GPL может требовать открытие исходников) |
+| 2 | **React Native / Flutter / Expo / Capacitor** | Cross-platform фреймворки — разрешены обоими магазинами |
+| 3 | **Supabase SDK** | Обычный HTTPS-клиент — никаких ограничений. Supabase Auth, Database, Storage, Edge Functions — всё разрешено |
+| 4 | **WebView** для отдельных страниц | Можно показывать Privacy Policy, Terms of Service, веб-формы через WKWebView (iOS) / WebView (Android) |
+| 5 | **Push notifications через APNs / FCM** | Стандартные механизмы — разрешены. Нужен только запрос разрешения у пользователя |
+| 6 | **Аналитика** (Firebase Analytics, Mixpanel, Amplitude) | Разрешено. Но нужно: объявить в Data Safety (Google), Privacy Nutrition Label (Apple), и **НЕ отправлять DOB в аналитику** (только age_bracket) |
+| 7 | **In-App Purchases** через StoreKit / Google Play Billing | Для платных функций — **обязательно** через систему магазина (30% комиссия). Свои платёжные системы запрещены для цифровых товаров |
+| 8 | **Шифрование** (AES, TLS, HTTPS) | Разрешено. Но если используешь шифрование — Apple может спросить про **Export Compliance** (выбрать YES: «Uses encryption» → «only standard HTTPS/TLS» → без ограничений) |
+| 9 | **Background fetch, notifications, location (при обосновании)** | Можно, если есть реальная функция. Нельзя: фоновый трекинг без причины |
+
+---
+
+#### 📐 Правила дизайна — Apple Human Interface Guidelines + Google Material Design
+
+> **Важно:** Магазины проверяют не только код, но и **дизайн и UX**. Нарушение гайдлайнов дизайна = отказ.
+
+##### 🍎 Apple — Human Interface Guidelines (HIG)
+
+| # | Правило | Что будет если нарушить | Ссылка |
+|---|---|---|---|
+| 1 | **Использовать нативные элементы** (UINavigationBar, UITabBar, SF Symbols) или их аналоги | Если UI выглядит «чужеродно» для iOS — ревьюер может отказать как «не iOS-like experience» | [HIG](https://developer.apple.com/design/human-interface-guidelines/) |
+| 2 | **Поддерживать Dynamic Type** (настройки размера шрифта в iOS) | Рекомендация. Если текст обрезается при крупном шрифте — могут отказать | [HIG — Typography](https://developer.apple.com/design/human-interface-guidelines/typography) |
+| 3 | **Поддерживать Dark Mode** | Настоятельная рекомендация с iOS 13. Не обязательно, но если в Dark Mode текст не читается — отказ | [HIG — Dark Mode](https://developer.apple.com/design/human-interface-guidelines/color#dark-mode) |
+| 4 | **Поддерживать Safe Area** (notch, Dynamic Island, Home Indicator) | Контент НЕ должен обрезаться за notch / Dynamic Island. Это проверяется | [HIG — Layout](https://developer.apple.com/design/human-interface-guidelines/layout) |
+| 5 | **Поддерживать все размеры экранов** (iPhone SE → iPhone 16 Pro Max + iPad если Universal) | Если при ревью на каком-то размере экрана — UI ломается → отказ | [HIG — Layout](https://developer.apple.com/design/human-interface-guidelines/layout) |
+| 6 | **НЕ копировать системные иконки** для других целей | Нельзя использовать иконку Settings ⚙️ для чего-то другого | [HIG — Icons](https://developer.apple.com/design/human-interface-guidelines/app-icons) |
+| 7 | **Accessibility** — VoiceOver labels на основных кнопках | Рекомендация. Apple всё чаще проверяет базовую доступность | [HIG — Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) |
+
+##### 🤖 Google — Material Design
+
+| # | Правило | Что будет если нарушить | Ссылка |
+|---|---|---|---|
+| 1 | **Следовать Material Design 3** (или обосновать свой дизайн) | Google менее строг чем Apple к дизайну. Но крайне некачественный UI → отказ | [Material Design](https://m3.material.io/) |
+| 2 | **Поддерживать edge-to-edge** (с Android 15) | Android 15 (2024) — приложения рисуются под status bar и navigation bar. Если не адаптировать → контент за системными элементами | [Android Edge-to-edge](https://developer.android.com/develop/ui/views/layout/edge-to-edge) |
+| 3 | **Поддерживать разные DPI** (mdpi → xxxhdpi) и размеры экранов | Если на планшете / foldable — UI ломается → могут отказать | [Android — Screen Compatibility](https://developer.android.com/guide/practices/screens_support) |
+| 4 | **Predictive Back Gesture** (Android 14+) | Рекомендуется. Система показывает предпросмотр «назад» — приложение должно поддерживать | [Android Predictive Back](https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture) |
+
+---
+
+#### 🔄 Обновления SDK — обязаны ли разработчики обновляться?
+
+> **Да, это ОБЯЗАТЕЛЬНО.** И Apple, и Google устанавливают **минимальные версии SDK** и дают дедлайн.
+
+##### 🍎 Apple — правила обновления
+
+| Правило | Описание | Последствия невыполнения |
+|---|---|---|
+| **Минимальный Xcode + SDK** | Apple каждый год (осенью) объявляет: «С [дата] все новые приложения и обновления должны быть собраны на Xcode [версия] с iOS SDK [версия]» | **Нельзя отправить обновление** пока не обновишь Xcode. Существующее приложение остаётся в магазине, но обновить его не получится |
+| **Deadline обычно:** | Весна следующего года (примерно апрель) для новых приложений. Для обновлений — аналогично | Пример: iOS 18 SDK (Xcode 16) — обязательно с весны 2025 |
+| **UIKit / SwiftUI deprecated API** | Если Apple удалит API в новом SDK — код не скомпилируется. Нужно мигрировать | Сборка не пройдёт → невозможно отправить в магазин |
+| **Privacy Manifest (PrivacyInfo.xcprivacy)** | С мая 2024 — обязательно для всех новых приложений и обновлений | Без него → отказ при ревью |
+| **Новые устройства** | Если вышел iPhone с новым размером экрана / Dynamic Island — приложение должно корректно отображаться | Apple тестирует на новейших устройствах |
+
+##### 🤖 Google — правила обновления
+
+| Правило | Описание | Последствия невыполнения |
+|---|---|---|
+| **Target API Level** | Google каждый год повышает минимальный `targetSdkVersion`. Примерно **август каждого года** для новых приложений, **ноябрь** — для обновлений | **Нельзя отправить обновление** пока не обновишь targetSdkVersion. Старые приложения могут быть скрыты из магазина для новых устройств |
+| **Deadline 2025:** | `targetSdkVersion = 35` (Android 15) — обязательно с августа 2025 для новых, ноября 2025 для обновлений | Если не обновить → приложение станет недоступно на новых устройствах |
+| **Скрытие старых приложений** | С 2024 Google **скрывает** приложения, которые не обновлялись 2+ года и имеют старый targetSdkVersion, из результатов поиска для устройств с новым Android | Приложение формально в магазине, но его не найти |
+| **Permissions model** | Каждая новая версия Android меняет модель разрешений. Если targetSdk новый, а код не адаптирован → краш или потеря функций | Нужно тестировать на новой версии Android |
+
+---
+
+#### 🧪 Как убедиться что дизайн НЕ сломается при обновлении — чеклист для разработчиков
+
+| # | Что делать | Когда | Инструмент |
+|---|---|---|---|
+| 1 | **Тестировать на beta-версиях iOS/Android** | Каждое лето (июнь-сентябрь) Apple и Google выпускают beta новых ОС | Xcode beta + iOS beta, Android Studio + Android beta |
+| 2 | **Подписаться на Apple Developer News и Android Developer Blog** | Постоянно | [Apple Developer News](https://developer.apple.com/news/), [Android Developers Blog](https://android-developers.googleblog.com/) |
+| 3 | **Запускать UI-тесты на всех размерах экранов** | Перед каждым релизом | Xcode Previews, Android Studio Layout Validation |
+| 4 | **Проверять deprecated warnings** при сборке | Каждая сборка | Xcode warnings panel, Android Lint |
+| 5 | **Автоматические скриншот-тесты** | CI/CD | [swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing) (iOS), [Paparazzi](https://github.com/cashapp/paparazzi) (Android) |
+| 6 | **Проверять Dark Mode** | Перед каждым релизом | Переключить в настройках устройства / эмулятора |
+| 7 | **Проверять Dynamic Type / Font Scale** | Перед каждым релизом | Настройки доступности устройства |
+| 8 | **Проверять Safe Area / notch / Dynamic Island** | Перед каждым релизом | Запустить на эмуляторах разных устройств |
+| 9 | **Проверять RTL (right-to-left)** если поддерживаем арабский/иврит | Перед каждым релизом | Переключить язык устройства на AR/HE |
+| 10 | **Обновить зависимости** (npm/pod/gradle) | Минимум раз в квартал | Dependabot / Renovate + ручная проверка |
+
+---
+
+#### ⚠️ Export Compliance (шифрование) — что указать в App Store Connect
+
+> Если приложение использует **ЛЮБОЕ шифрование** (HTTPS, AES, TLS) — Apple спросит при загрузке.
+
+| Вопрос Apple | Наш ответ | Почему |
+|---|---|---|
+| «Does your app use encryption?» | **Yes** | Мы используем HTTPS + AES-256-GCM для DOB |
+| «Does your app qualify for any of the exemptions?» | **Yes** | Стандартное шифрование (HTTPS/TLS для сетевых запросов) — exempt |
+| «Does your app implement proprietary encryption?» | **No** | Мы используем стандартные алгоритмы (AES-256-GCM, TLS 1.3) — не собственные |
+| Нужен ли ERN (Encryption Registration Number)? | **Нет** | ERN нужен только для собственных проприетарных алгоритмов шифрования или приложений, продающихся в embargoed countries |
+
+> **Для Supabase:** HTTPS-соединение с Supabase — стандартный TLS → попадает под exemption. AES-256-GCM для DOB — стандартный алгоритм → тоже exempt. Ничего дополнительного делать не нужно.
+
+---
+
+#### 📋 Сводный чеклист для разработчиков — «Пройду ли я ревью?»
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║               ЧЕКЛИСТ РАЗРАБОТЧИКА — ПЕРЕД ОТПРАВКОЙ В МАГАЗИН               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                               ║
+║  КОД:                                                                         ║
+║  ☐ Нет вызовов Private API                                                    ║
+║  ☐ Нет загрузки исполняемого кода (eval, dlopen, динамические библиотеки)     ║
+║  ☐ Все deprecated API заменены или имеют fallback                              ║
+║  ☐ Privacy Manifest (PrivacyInfo.xcprivacy) заполнен (iOS)                    ║
+║  ☐ Info.plist: Purpose String для КАЖДОГО запрашиваемого разрешения (iOS)     ║
+║  ☐ Нет лишних разрешений — каждое обосновано реальной функцией                ║
+║  ☐ Export Compliance = Yes → Standard encryption exemption (iOS)               ║
+║  ☐ targetSdkVersion = актуальная версия (Android)                             ║
+║  ☐ Приложение НЕ крашится на основных экранах                                 ║
+║                                                                               ║
+║  ДИЗАЙН:                                                                      ║
+║  ☐ Safe Area / notch / Dynamic Island — контент не обрезается                  ║
+║  ☐ Все размеры экранов — от SE до Pro Max (iOS), от 5" до tablet (Android)   ║
+║  ☐ Dark Mode — текст читается, контрастность достаточная                      ║
+║  ☐ Dynamic Type (iOS) / Font Scale (Android) — UI не ломается при крупном     ║
+║  ☐ Edge-to-edge (Android 15+) — контент не за status/navigation bar           ║
+║  ☐ RTL проверен (если есть AR/HE в локализации)                               ║
+║                                                                               ║
+║  SDK И ОБНОВЛЕНИЯ:                                                            ║
+║  ☐ Xcode + iOS SDK — актуальная версия (проверить Apple требования)           ║
+║  ☐ Android targetSdkVersion — актуальная (проверить Google требования)        ║
+║  ☐ Все зависимости обновлены (нет известных CVE)                              ║
+║  ☐ Протестировано на beta-версии следующей ОС (если доступна)                 ║
+║                                                                               ║
+║  ДАННЫЕ:                                                                      ║
+║  ☐ Data Safety (Google Play) заполнена и соответствует реальности              ║
+║  ☐ Privacy Nutrition Label (Apple) заполнена и соответствует реальности       ║
+║  ☐ DOB не попадает в аналитику — только age_bracket                           ║
+║  ☐ Нет fingerprinting / скрытого сбора данных                                 ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ---
