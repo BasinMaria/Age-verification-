@@ -1855,6 +1855,461 @@ deleting your account (GDPR Art. 17).
 > Это **ожидаемое и правильное поведение** для обеспечения безопасности.
 > Для аналитики и поиска по возрасту используется отдельное **незашифрованное** поле `age_bracket`.
 
+---
+
+### 🟢 Реализация в Supabase — подробное руководство для разработчика
+
+> Мы используем **Supabase** (PostgreSQL + Auth + Edge Functions + Vault).
+> Ниже — конкретные инструкции, как реализовать шифрование, расчёт age_bracket и определение страны.
+
+---
+
+#### 1️⃣ `dob_encrypted` — как шифровать дату рождения в Supabase
+
+**Supabase предлагает два подхода к шифрованию:**
+
+| Подход | Как работает | Плюсы | Минусы |
+|---|---|---|---|
+| **A) Supabase Vault** (рекомендуется) | Встроенный менеджер секретов Supabase. Шифрование выполняется расширением `pgsodium` прямо в PostgreSQL | Ключи управляются Supabase, не нужно писать свой код шифрования, шифрование на уровне БД | Привязка к инфраструктуре Supabase |
+| **B) Application-Level Encryption** (Edge Function) | Шифруем DOB в Edge Function (серверный код) перед записью в Supabase | Ключ полностью под твоим контролем, можно мигрировать | Нужно писать код шифрования самому |
+
+**Подход A — Supabase Vault (рекомендуемый):**
+
+```sql
+-- 1. Включить расширения (Supabase Dashboard → Database → Extensions)
+CREATE EXTENSION IF NOT EXISTS pgsodium;
+CREATE EXTENSION IF NOT EXISTS supabase_vault;
+
+-- 2. Создать секретный ключ в Vault
+--    (Supabase Dashboard → Settings → Vault → Create New Secret)
+--    Или через SQL:
+SELECT vault.create_secret(
+  'my-dob-encryption-key-256bit-here',  -- 32-байтовый ключ (генерировать: openssl rand -hex 32)
+  'dob_encryption_key',                 -- имя секрета
+  'Ключ для шифрования даты рождения'   -- описание
+);
+
+-- 3. Таблица users — поле dob_encrypted хранит зашифрованный bytea
+ALTER TABLE users ADD COLUMN dob_encrypted bytea;
+
+-- 4. Запись: шифрование при INSERT
+--    (выполняется в Edge Function или через RPC-функцию)
+INSERT INTO users (id, dob_encrypted, age_bracket, country)
+VALUES (
+  auth.uid(),
+  pgsodium.crypto_aead_det_encrypt(
+    convert_to('1990-05-15', 'utf8'),           -- открытый текст (DOB)
+    convert_to(auth.uid()::text, 'utf8'),        -- associated data (привязка к user_id)
+    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'dob_encryption_key')::uuid
+  ),
+  '25-34',
+  'US'
+);
+
+-- 5. Чтение: расшифровка (ТОЛЬКО в cron job для birthday check)
+SELECT convert_from(
+  pgsodium.crypto_aead_det_decrypt(
+    dob_encrypted,
+    convert_to(id::text, 'utf8'),
+    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'dob_encryption_key')::uuid
+  ),
+  'utf8'
+) AS dob_plaintext
+FROM users
+WHERE id = '<user_id>';
+```
+
+**Подход B — Application-Level Encryption (Edge Function):**
+
+```typescript
+// supabase/functions/register-user/index.ts
+import { createClient } from '@supabase/supabase-js'
+
+// Ключ шифрования — в Supabase Edge Function Secrets
+// (Supabase Dashboard → Edge Functions → Secrets → DOB_ENCRYPTION_KEY)
+const ENCRYPTION_KEY = Deno.env.get('DOB_ENCRYPTION_KEY')! // 256-bit key
+
+async function encryptDOB(dob: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(ENCRYPTION_KEY).slice(0, 32),
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  )
+  const iv = crypto.getRandomValues(new Uint8Array(12)) // 96-bit IV
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(dob)
+  )
+  // Формат: base64(iv + ciphertext)
+  const combined = new Uint8Array(iv.length + new Uint8Array(encrypted).length)
+  combined.set(iv)
+  combined.set(new Uint8Array(encrypted), iv.length)
+  return btoa(String.fromCharCode(...combined))
+}
+
+async function decryptDOB(encryptedBase64: string): Promise<string> {
+  const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0))
+  const iv = combined.slice(0, 12)
+  const ciphertext = combined.slice(12)
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(ENCRYPTION_KEY).slice(0, 32),
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  )
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ciphertext
+  )
+  return new TextDecoder().decode(decrypted)
+}
+```
+
+**Где хранить ключ шифрования:**
+
+| Хранилище | Как добавить |
+|---|---|
+| **Supabase Vault** (подход A) | Dashboard → Settings → Vault → «Add new secret» → имя: `dob_encryption_key` |
+| **Edge Function Secrets** (подход B) | Dashboard → Edge Functions → выбрать функцию → Secrets → `DOB_ENCRYPTION_KEY` = `<32-hex-chars>` |
+| **❌ НЕ ХРАНИТЬ** в коде | Запрещено класть ключ в `.env` файл, который коммитится в Git |
+| **❌ НЕ ХРАНИТЬ** в таблице Supabase | Ключ не должен лежать в той же БД, что и зашифрованные данные |
+
+---
+
+#### 2️⃣ Что ещё нужно шифровать по закону?
+
+> **GDPR Art. 32** требует «соразмерные технические меры» для защиты **персональных данных** (PII).
+
+| Данные | Шифровать? | Обоснование |
+|---|---|---|
+| **Дата рождения** (`dob_encrypted`) | ✅ **ДА — обязательно** | PII — по дате + имени можно идентифицировать личность. Используем AES-256-GCM |
+| **Email** | ⚠️ **Нет** (но защитить доступ) | Email нужен для входа — Supabase Auth хранит его в `auth.users`. Supabase уже шифрует данные at rest на уровне диска (AES-256). Дополнительное шифрование email сломает логин. **Защита**: RLS (Row Level Security) + запретить доступ к `auth.users` через API |
+| **Пароль** | ✅ **Автоматически** | Supabase Auth хэширует пароли (bcrypt) — ты не храниш пароль в открытом виде |
+| **Имя пользователя** | ⚠️ **Нет** | Имя — публичное (отображается в профиле). Шифровать публичные данные бессмысленно |
+| **Фото профиля** | ❌ **Нет** | Публичное — не PII в контексте шифрования |
+| **Личные сообщения (чат)** | ⚠️ **Рекомендуется E2E** | GDPR Art. 32 рекомендует. Для MVP — Supabase at-rest encryption достаточно. Для v2 — добавить E2E шифрование |
+| **IP-адрес** | ❌ **Не хранить** | Мы используем IP только для определения страны (GeoIP), после чего удаляем. В БД хранится только `country` (двухбуквенный код) — это не PII |
+| **age_bracket** | ❌ **Нет** | Обобщённая группа ("25-34") — не PII. Невозможно идентифицировать человека |
+| **country** | ❌ **Нет** | Двухбуквенный код страны — не PII |
+
+> **Итого: шифровать вручную нужно ТОЛЬКО `dob_encrypted`.** Остальное защищается:
+> - Supabase **Disk Encryption** (AES-256 at rest — включено по умолчанию)
+> - **RLS** (Row Level Security) — каждый пользователь видит только свои данные
+> - **SSL/TLS** — все соединения зашифрованы в транзите
+> - **Supabase Auth** — пароли хэшируются автоматически
+
+---
+
+#### 3️⃣ `age_bracket` — как вычислять и зачем
+
+**Что это:** обобщённая возрастная группа пользователя (когорта). НЕ точный возраст.
+
+**Зачем нужна:**
+| Цель | Почему `age_bracket`, а не `dob_encrypted` |
+|---|---|
+| **Рекомендации AI** | Алгоритм подбора контента получает `"25-34"` — этого достаточно для персонализации. Передавать точную DOB алгоритму — нарушение GDPR Art. 5 (минимизация) |
+| **Аналитика** | Внутренний дашборд показывает: «60% пользователей — 18-24». Для этого не нужна точная DOB |
+| **Контент по возрасту** | Если нужно показать/скрыть определённый контент для разных возрастных групп — достаточно когорты |
+| **Быстрый доступ** | Не нужно расшифровывать DOB каждый раз. `age_bracket` — открытое поле, SQL-запросы работают мгновенно |
+
+**Как вычислять (логика):**
+
+```typescript
+// Вызывается ОДИН РАЗ при регистрации, ДО шифрования DOB
+function calculateAgeBracket(dob: string): string {
+  const birthDate = new Date(dob)           // "1990-05-15" → Date
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+
+  // Корректировка: если день рождения ещё не наступил в этом году
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+
+  // Определяем когорту
+  if (age >= 18 && age <= 24) return '18-24'
+  if (age >= 25 && age <= 34) return '25-34'
+  if (age >= 35 && age <= 44) return '35-44'
+  return '45+'  // 45 и старше
+}
+
+// Пример:
+// calculateAgeBracket('1990-05-15') → '25-34' (если сейчас 2026 год, возраст 35 → '35-44')
+// calculateAgeBracket('2004-01-10') → '18-24' (если сейчас 2026, возраст 22)
+```
+
+**Когда пересчитывать:**
+
+| Момент | Что делать |
+|---|---|
+| **Регистрация** | Вычислить `age_bracket` из открытой DOB → записать в `users.age_bracket` |
+| **День рождения (раз в год)** | Cron job `daily_birthday_check`: расшифровать DOB → пересчитать `age_bracket` → обновить в БД (если когорта изменилась, например 24→25 = из "18-24" в "25-34") |
+
+**SQL для Supabase — создание поля:**
+
+```sql
+-- Поле age_bracket с проверкой допустимых значений
+ALTER TABLE users ADD COLUMN age_bracket text
+  CHECK (age_bracket IN ('18-24', '25-34', '35-44', '45+'));
+```
+
+---
+
+#### 4️⃣ `country` — как определять страну через Cloudflare + Supabase
+
+**Схема работы:**
+
+```
+Пользователь открывает приложение
+        │
+        ▼
+Запрос проходит через Cloudflare (автоматически — Supabase использует CF)
+        │
+        ▼
+Cloudflare добавляет заголовок: CF-IPCountry: US
+(определяет страну по IP, сам IP дальше НЕ передаётся в нашу БД)
+        │
+        ▼
+Edge Function / Backend читает заголовок
+        │
+        ▼
+Сохраняет в users.country = "US"
+(двухбуквенный код ISO 3166-1 alpha-2)
+```
+
+**Edge Function — чтение страны при регистрации:**
+
+```typescript
+// supabase/functions/register-user/index.ts
+Deno.serve(async (req) => {
+  // Cloudflare автоматически добавляет заголовок CF-IPCountry
+  const country = req.headers.get('cf-ipcountry') || 'XX'  // 'XX' = неизвестно
+
+  // Проверить: не заблокированная ли страна?
+  const BLOCKED_COUNTRIES = ['GB', 'AU', 'BR', 'CN', 'KR', 'MY', 'RU', 'BY', 'TM']
+  if (BLOCKED_COUNTRIES.includes(country)) {
+    return new Response(JSON.stringify({
+      error: 'country_blocked',
+      message: 'Service is not available in your region'
+    }), { status: 403 })
+  }
+
+  // Сохранить country в таблицу users
+  const { error } = await supabase
+    .from('users')
+    .update({ country })
+    .eq('id', userId)
+
+  // ...
+})
+```
+
+**Зачем `country` нужен:**
+
+| Цель | Пример |
+|---|---|
+| **Какие правила применять** | Пользователь из `DE` (Германия) → применить GDPR-правила для ЕС, показать Consent Flow на немецком |
+| **Блокировка стран** | `GB`, `AU`, `BR` и др. — заблокированы. Если `country` совпадает → не пускать |
+| **Контент по стране** | Определённый контент может быть доступен/недоступен в конкретных странах (лицензии, локальные законы) |
+| **Аналитика** | Понимать, откуда пользователи: «70% из US, 15% из DE, 10% из IL» |
+
+> **Важно:** `country` — это НЕ шифрованное поле. Двухбуквенный код страны — не PII (персональные данные). По коду `US` невозможно идентифицировать конкретного человека.
+
+---
+
+#### 5️⃣ Cron Job — ежедневная проверка дней рождения в Supabase
+
+**Два варианта реализации:**
+
+| Вариант | Как работает |
+|---|---|
+| **A) pg_cron** (SQL в PostgreSQL) | Расширение `pg_cron` запускает SQL-функцию по расписанию прямо в базе данных |
+| **B) Supabase Edge Function + внешний триггер** | Scheduled Edge Function (через cron.org или GitHub Actions), которая вызывает Edge Function каждый день |
+
+**Вариант A — pg_cron (рекомендуется для Supabase Pro и выше):**
+
+```sql
+-- Включить расширение
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Функция: найти именинников и начислить бонусы
+CREATE OR REPLACE FUNCTION daily_birthday_check()
+RETURNS void AS $$
+DECLARE
+  user_record RECORD;
+  decrypted_dob text;
+  today_mmdd text;
+BEGIN
+  today_mmdd := to_char(NOW(), 'MM-DD');
+
+  -- Перебираем всех пользователей (активных)
+  FOR user_record IN
+    SELECT id, dob_encrypted FROM users WHERE status = 'active'
+  LOOP
+    -- Расшифровать DOB (пример для pgsodium)
+    decrypted_dob := convert_from(
+      pgsodium.crypto_aead_det_decrypt(
+        user_record.dob_encrypted,
+        convert_to(user_record.id::text, 'utf8'),
+        (SELECT decrypted_secret FROM vault.decrypted_secrets
+         WHERE name = 'dob_encryption_key')::uuid
+      ), 'utf8'
+    );
+
+    -- Проверить: MM-DD совпадает с сегодняшним днём?
+    IF substring(decrypted_dob FROM 6 FOR 5) = today_mmdd THEN
+      -- 🎂 День рождения! Начислить бонус
+      INSERT INTO birthday_bonuses (user_id, bonus_date, bonus_type)
+      VALUES (user_record.id, NOW(), 'birthday_2026');
+
+      -- Отправить Push-уведомление (через Edge Function или webhook)
+      PERFORM net.http_post(
+        'https://<project>.supabase.co/functions/v1/send-birthday-push',
+        jsonb_build_object('user_id', user_record.id)::text,
+        'application/json'
+      );
+
+      -- Пересчитать age_bracket (если когорта изменилась)
+      -- (опционально — вызвать отдельную функцию)
+    END IF;
+
+    -- Расшифрованное значение НЕ сохраняется — оно в локальной переменной,
+    -- которая уничтожается после каждой итерации цикла
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Расписание: каждый день в 06:00 UTC
+SELECT cron.schedule(
+  'daily-birthday-check',
+  '0 6 * * *',  -- cron-выражение: каждый день в 06:00
+  $$ SELECT daily_birthday_check(); $$
+);
+```
+
+**Вариант B — Edge Function (для Supabase Free):**
+
+```typescript
+// supabase/functions/daily-birthday-check/index.ts
+// Вызывается внешним cron-сервисом (cron-job.org, GitHub Actions, etc.)
+
+Deno.serve(async (req) => {
+  // Проверить секретный токен (защита от несанкционированных вызовов)
+  const authHeader = req.headers.get('Authorization')
+  if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!  // service role для доступа ко всем пользователям
+  )
+
+  // Получить всех активных пользователей
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, dob_encrypted')
+    .eq('status', 'active')
+
+  const todayMMDD = new Date().toISOString().slice(5, 10) // "03-25"
+
+  for (const user of users || []) {
+    const dob = await decryptDOB(user.dob_encrypted) // расшифровать → "1990-05-15"
+    const dobMMDD = dob.slice(5, 10) // "05-15"
+
+    if (dobMMDD === todayMMDD) {
+      // 🎂 День рождения!
+      await supabase.from('birthday_bonuses').insert({
+        user_id: user.id,
+        bonus_date: new Date().toISOString(),
+        bonus_type: 'birthday_2026'
+      })
+
+      // Push-уведомление
+      // ... (вызов FCM / APNs через Edge Function)
+    }
+    // Расшифрованная DOB НЕ логируется, НЕ кэшируется
+  }
+
+  return new Response(JSON.stringify({ ok: true }), { status: 200 })
+})
+```
+
+---
+
+#### 6️⃣ Полная схема таблицы `users` в Supabase
+
+```sql
+CREATE TABLE users (
+  id uuid PRIMARY KEY DEFAULT auth.uid(),
+
+  -- Персональные данные
+  name text NOT NULL,
+  -- email хранится в auth.users (управляется Supabase Auth)
+
+  -- 🔐 Зашифрованная DOB (ЕДИНСТВЕННОЕ поле, которое мы шифруем вручную)
+  dob_encrypted bytea NOT NULL,
+
+  -- 📊 Возрастная когорта (НЕ зашифрована — безопасно, т.к. это обобщённая группа)
+  age_bracket text NOT NULL CHECK (age_bracket IN ('18-24', '25-34', '35-44', '45+')),
+
+  -- 🌍 Страна (НЕ зашифрована — двухбуквенный код, не PII)
+  country char(2) NOT NULL,  -- ISO 3166-1 alpha-2: "US", "DE", "IL"
+
+  -- Профиль
+  profile_visibility text NOT NULL DEFAULT 'private'
+    CHECK (profile_visibility IN ('private', 'public')),
+
+  -- Статус аккаунта (для мягкого удаления)
+  status text NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'scheduled_for_deletion', 'deleted')),
+  deletion_requested_at timestamptz,
+  deletion_scheduled_for timestamptz,
+
+  -- Push-уведомления
+  push_notifications_enabled boolean NOT NULL DEFAULT false,
+
+  -- Метки времени
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- RLS: каждый пользователь видит только свои данные
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own data"
+  ON users FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own data"
+  ON users FOR UPDATE
+  USING (auth.uid() = id);
+```
+
+---
+
+#### 📋 Итого — что нужно сделать разработчику
+
+| # | Задача | Где в Supabase | Статус |
+|---|---|---|---|
+| 1 | Включить расширение `pgsodium` + `supabase_vault` (или использовать Edge Function encryption) | Database → Extensions | ☐ |
+| 2 | Создать ключ шифрования в Vault (или Edge Function Secrets) | Settings → Vault / Edge Functions → Secrets | ☐ |
+| 3 | Добавить поле `dob_encrypted` (bytea) в таблицу `users` | Database → SQL Editor | ☐ |
+| 4 | Добавить поле `age_bracket` (text с CHECK) в таблицу `users` | Database → SQL Editor | ☐ |
+| 5 | Добавить поле `country` (char(2)) в таблицу `users` | Database → SQL Editor | ☐ |
+| 6 | Написать Edge Function для регистрации: вычислить age_bracket → зашифровать DOB → определить country из CF-IPCountry → сохранить в БД | Edge Functions | ☐ |
+| 7 | Настроить RLS (Row Level Security) на таблицу `users` | Database → Policies | ☐ |
+| 8 | Настроить cron job `daily_birthday_check` (pg_cron или внешний) | Database → Extensions / External cron | ☐ |
+| 9 | **Никогда** не логировать DOB, не передавать в аналитику, не кэшировать | Код-ревью | ☐ |
+
+---
+
 ### ❓ «Если не хранить IP — как поддерживать сессию?»
 
 **Сессия НЕ привязана к IP-адресу.** Это разные вещи:
