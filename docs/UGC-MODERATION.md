@@ -69,6 +69,7 @@
 | **Reason: Harassment** | Bullying or harassment | `report_reason_harassment` |
 | **Reason: Nudity** | Nudity or sexual content | `report_reason_nudity` |
 | **Reason: Fraud** | Fraud or scam | `report_reason_fraud` |
+| **Reason: Health misinfo** | Dangerous health misinformation | `report_reason_health_misinfo` |
 | **Reason: Other** | Other | `report_reason_other` |
 | **Submit** | Submit report | `submit_report` |
 | **Confirmation** | Thank you. We will review this report within 24 hours. | `report_submitted_confirmation` |
@@ -98,6 +99,234 @@
 
 ---
 
+## 📱 Форма жалобы — как выглядит (визуал)
+
+> **MVP — самый простой способ, который пройдёт Apple/Google/DSA проверки.**
+
+### Шаг 1: Кнопка Report (на каждом посте/комментарии/профиле)
+
+```
+┌─────────────────────────────────────┐
+│  [Фото / Контент поста]            │
+│                                     │
+│  ❤️ 💬 🔖                      ••• │  ← три точки = меню
+│                                     │
+└─────────────────────────────────────┘
+
+Нажатие на ••• открывает меню:
+┌─────────────────────────────────────┐
+│  📋 Copy link                       │
+│  🔇 Mute @username                  │
+│  🚫 Block @username                 │
+│  ────────────────────────────       │
+│  🚩 Report                          │  ← ОБЯЗАТЕЛЬНО
+└─────────────────────────────────────┘
+```
+
+### Шаг 2: Модальное окно выбора причины
+
+```
+┌─────────────────────────────────────┐
+│           Report this content       │
+│                                     │
+│  Why are you reporting this?        │
+│                                     │
+│  ○ Spam or misleading               │
+│  ○ Hate speech or discrimination    │
+│  ○ Violence or threats              │
+│  ○ Child exploitation (CSAM)        │
+│  ○ Bullying or harassment           │
+│  ○ Nudity or sexual content         │
+│  ○ Fraud or scam                    │
+│  ○ Dangerous health misinformation  │  ← wellness-специфика
+│  ○ Other                            │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │ Additional details (optional)│    │
+│  │                             │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  [Cancel]        [Submit report]    │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### Шаг 3: Подтверждение
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│           ✅                        │
+│                                     │
+│  Thank you for your report          │
+│                                     │
+│  We will review this report within  │
+│  24 hours. You will be notified of  │
+│  the outcome.                       │
+│                                     │
+│  Your identity is kept confidential │
+│  — the reported user will NOT know  │
+│  who reported them.                 │
+│                                     │
+│           [OK]                      │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+> **Для дизайнера:** Это модальное окно (bottom sheet на мобильном). Минимум 2 экрана: выбор причины → подтверждение.
+
+---
+
+## 📬 Статус жалобы — что видит пользователь
+
+### Где пользователь видит статус своих жалоб
+
+**Место:** Settings → My Reports (или Notifications)
+
+```
+┌─────────────────────────────────────┐
+│  My Reports                         │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │ 📝 Report #1                │    │
+│  │ Post by @user123            │    │
+│  │ Reason: Spam                │    │
+│  │ Status: ✅ Resolved         │    │
+│  │ Action: Content removed     │    │
+│  │ Mar 25, 2026                │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │ 📝 Report #2                │    │
+│  │ Comment by @spammer         │    │
+│  │ Reason: Hate speech         │    │
+│  │ Status: 🔍 Under review     │    │
+│  │ Mar 27, 2026                │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │ 📝 Report #3                │    │
+│  │ Profile @fakebiz            │    │
+│  │ Reason: Fraud               │    │
+│  │ Status: ❌ Dismissed         │    │
+│  │ No violation found          │    │
+│  │ Mar 20, 2026                │    │
+│  └─────────────────────────────┘    │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+### Статусы жалобы (DSA Art. 17 — уведомление о результате)
+
+| Статус | Иконка | Текст (EN) | Ключ |
+|---|---|---|---|
+| **Отправлено** | 📝 | Submitted — under review | `report_status_submitted` |
+| **На рассмотрении** | 🔍 | Under review | `report_status_under_review` |
+| **Контент удалён** | ✅ | Resolved — content removed | `report_status_content_removed` |
+| **Автор предупреждён** | ✅ | Resolved — user warned | `report_status_user_warned` |
+| **Автор заблокирован** | ✅ | Resolved — user banned | `report_status_user_banned` |
+| **Отклонено** | ❌ | Dismissed — no violation found | `report_status_dismissed` |
+
+### Push-уведомление о результате
+
+| Когда | Текст (EN) | Ключ |
+|---|---|---|
+| Жалоба рассмотрена — action taken | Your report was reviewed. Action was taken against the content. | `report_result_action_taken` |
+| Жалоба отклонена | Your report was reviewed. We did not find a violation. | `report_result_dismissed` |
+
+> **DSA Art. 17 требует:** уведомить заявителя о результате + указать причину + указать возможность обжалования.
+
+---
+
+## 🔧 MVP — минимальная реализация модерации
+
+> **Самый простой способ, чтобы пройти Apple/Google/DSA проверки:**
+
+| # | Что сделать | Приоритет | Описание |
+|---|---|---|---|
+| 1 | **Кнопка Report** на каждом контенте | 🔴 Обязательно | ••• меню → Report → выбор причины |
+| 2 | **Block user** | 🔴 Обязательно | Кнопка блокировки + двусторонний блок |
+| 3 | **Community Guidelines** | 🔴 Обязательно | Текст на bestme.app/guidelines + ПОТОК 2 |
+| 4 | **Email-уведомление модератору** | 🔴 Обязательно | При жалобе → email на moderation@bestme.app |
+| 5 | **Модератор удаляет через Supabase** | 🟡 MVP | На старте = ручное удаление через Supabase Dashboard |
+| 6 | **Уведомление заявителю** | 🔴 Обязательно (DSA) | Push/email о результате |
+| 7 | **Appeal кнопка** | 🔴 Обязательно (DSA) | При удалении → email для обжалования |
+| 8 | **Admin Panel (полная)** | 🟢 Позже (v2) | Веб-панель модерации |
+
+### MVP Flow (простейший)
+
+```
+Пользователь нажимает Report
+       │
+       ▼
+Выбирает причину → Submit
+       │
+       ▼
+Запись в таблицу reports (status: pending)
+       │
+       ▼
+Email-уведомление на moderation@bestme.app
+       │
+       ▼
+Модератор открывает Supabase Dashboard
+       │
+       ├── Удалить контент → UPDATE reports SET status='actioned'
+       │   └── Push-уведомление заявителю: "Action taken"
+       │   └── Push-уведомление автору: "Content removed" + Appeal кнопка
+       │
+       └── Отклонить → UPDATE reports SET status='dismissed'
+           └── Push-уведомление заявителю: "No violation found"
+```
+
+> **На первом этапе admin panel = Supabase Dashboard.** Это законно — закон не требует красивую панель, он требует **процесс рассмотрения жалоб в течение 24 часов.**
+
+---
+
+## 🖥️ Интерфейс модерации (Admin Panel) — v2
+
+> **Для масштабирования после MVP.**
+
+### Очередь жалоб
+
+```
+┌────────────────────────────────────────────────────────┐
+│  📋 Moderation Queue            Filter: [All ▼]  🔄    │
+│                                                        │
+│  🔴 URGENT (2)                                         │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ 🚨 CSAM Report    @user456    Post #789         │  │
+│  │    Reported: 5 min ago    Reporter: @reporter1   │  │
+│  │    [View] [Remove + Report NCMEC] [Dismiss]      │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                        │
+│  🟡 PENDING (15)                                       │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ Hate speech        @troll99    Comment #321      │  │
+│  │    Reported: 2h ago    Reporter: @user007        │  │
+│  │    [View] [Remove] [Warn] [Dismiss]              │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ Spam               @spammer   Post #555         │  │
+│  │    Reported: 3h ago    Reporter: @user088        │  │
+│  │    [View] [Remove] [Ban user] [Dismiss]          │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                        │
+│  ✅ RESOLVED TODAY: 23   ⏳ AVG RESPONSE: 4.2h         │
+└────────────────────────────────────────────────────────┘
+```
+
+### Действия модератора
+
+| Кнопка | Что делает | Уведомления |
+|---|---|---|
+| **View** | Открыть контент + профиль автора + историю жалоб | — |
+| **Remove** | Удалить контент | Автору: «Content removed» + причина + Appeal. Заявителю: «Action taken» |
+| **Warn** | Предупредить автора (контент может остаться) | Автору: «Warning» + причина |
+| **Ban user** | Заблокировать аккаунт автора | Автору: «Account suspended» + причина + Appeal |
+| **Dismiss** | Отклонить жалобу (нет нарушения) | Заявителю: «No violation found» |
+
+---
+
 ## 💾 Backend / База данных
 
 ### Таблица `reports`
@@ -108,7 +337,7 @@
 | `reporter_id` | UUID FK | Кто пожаловался |
 | `reported_content_id` | UUID | ID контента (пост/комментарий/профиль) |
 | `reported_content_type` | ENUM | `post`, `comment`, `profile` |
-| `reason` | ENUM | `spam`, `hate`, `violence`, `csam`, `harassment`, `nudity`, `fraud`, `other` |
+| `reason` | ENUM | `spam`, `hate`, `violence`, `csam`, `harassment`, `nudity`, `fraud`, `health_misinfo`, `other` |
 | `status` | ENUM | `pending`, `reviewed`, `actioned`, `dismissed` |
 | `moderator_id` | UUID FK | Кто рассмотрел |
 | `moderator_action` | ENUM | `content_removed`, `user_warned`, `user_banned`, `dismissed` |
@@ -134,3 +363,12 @@
 | `status` | ENUM | `pending`, `approved`, `rejected` |
 | `created_at` | TIMESTAMP | Когда |
 | `reviewed_at` | TIMESTAMP | Когда рассмотрена |
+
+---
+
+> **Связанные документы:**
+> - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ
+> - [COMMUNITY-GUIDELINES.md](COMMUNITY-GUIDELINES.md) — полный текст Community Guidelines
+> - [AI-ALGORITHMS.md](AI-ALGORITHMS.md) — AI, алгоритмы, прозрачность, AI-модерация
+> - [LEGAL-DOCUMENTS.md](LEGAL-DOCUMENTS.md) — юридические документы
+> - [FLOW-2-UGC-GUIDELINES.md](flows/FLOW-2-UGC-GUIDELINES.md) — ПОТОК 2 (экран согласия)

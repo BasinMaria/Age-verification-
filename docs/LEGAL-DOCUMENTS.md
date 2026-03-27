@@ -36,7 +36,11 @@
 - [ ] Как подать запрос на удаление (email / кнопка / веб-форма)
 - [ ] Третьи лица (аналитика, SDK) — перечислить
 - [ ] AI/рекомендательные системы — раскрыть что используется AI для персонализации ([EU AI Act Art. 52](https://eur-lex.europa.eu/eli/reg/2024/1689/oj), прозрачность)
+- [ ] **Automated Decision-Making and Profiling** — раздел о том как AI принимает решения (модерация, рекомендации), право на человеческое рассмотрение ([GDPR Art. 22](https://gdpr-info.eu/art-22-gdpr/))
+- [ ] **AI-модерация** — описать что автоматические системы проверяют контент, какие данные используются, как обжаловать
 - [ ] AI-проверка контента — disclaimer что автоматическая проверка не гарантирует достоверность
+
+> **Подробнее о тексте для Privacy Policy:** см. [AI-ALGORITHMS.md](AI-ALGORITHMS.md), Секция 6
 - [ ] Бонусная система — описать что баллы = loyalty points, не финансовый инструмент
 - [ ] Блоги — описать что контент блога = UGC, блогер несёт ответственность за свой контент
 - [ ] Рейтинги бизнес-профилей — описать что отзывы = UGC, правила модерации отзывов
@@ -84,6 +88,11 @@
 - [ ] Ограничение ответственности
 - [ ] Применимое право (Израиль / или юрисдикция пользователя для ЕС)
 - [ ] AI Disclaimer — если используется AI-проверка контента ([EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj))
+- [ ] **Recommendation System** — описать алгоритмическую ленту + параметры ранжирования + хронологическая альтернатива ([DSA Art. 27](https://eur-lex.europa.eu/eli/reg/2022/2065/oj))
+- [ ] **Content Moderation** — описать что используется AI + человек-модератор, процесс жалобы, апелляция ([DSA Art. 14](https://eur-lex.europa.eu/eli/reg/2022/2065/oj))
+- [ ] **Automated Decision-Making** — право не подвергаться решению, основанному только на автоматике ([GDPR Art. 22](https://gdpr-info.eu/art-22-gdpr/))
+
+> **Подробнее о тексте для ToS:** см. [AI-ALGORITHMS.md](AI-ALGORITHMS.md), Секция 7
 
 ### Языки
 
@@ -101,16 +110,21 @@ EN + DE, FR, ES, IT, PT (те же, что и Privacy Policy)
 
 ## 3. Community Guidelines
 
-> **Подробнее:** см. [UGC-MODERATION.md](UGC-MODERATION.md), раздел 5.
+> **Подробнее:** см. [COMMUNITY-GUIDELINES.md](COMMUNITY-GUIDELINES.md) — полный готовый текст.
+> **Модерация:** см. [UGC-MODERATION.md](UGC-MODERATION.md) — система жалоб и admin panel.
 
 ### Что ОБЯЗАТЕЛЬНО включить
 
 - [ ] Цель документа
 - [ ] Запрещённый контент (CSAM, терроризм, hate speech, violence, harassment, spam, fraud, nudity, doxxing, self-harm)
+- [ ] **Wellness-специфика** — правила для health-контента (нельзя: диагнозы, ложные мед. утверждения, опасные диеты)
+- [ ] **Бизнес-профили** — правила для бизнесов (нельзя: фейковые отзывы, ложные сертификации)
 - [ ] Последствия нарушений (удаление → предупреждение → бан)
 - [ ] Как подать жалобу (Report)
 - [ ] Как обжаловать (Appeal) — DSA Art. 20
-- [ ] Модерация контента — описание процесса
+- [ ] Модерация контента — описание процесса (AI + человек)
+- [ ] **AI-модерация** — указать что используется автоматическая проверка ([EU AI Act Art. 50](https://eur-lex.europa.eu/eli/reg/2024/1689/oj))
+- [ ] **Право на человеческое рассмотрение** при AI-решении ([GDPR Art. 22](https://gdpr-info.eu/art-22-gdpr/))
 - [ ] Обновление правил
 
 ### Языки
@@ -257,6 +271,8 @@ Email: [email]
 
 > **Связанные документы:**
 > - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ
-> - [UGC-MODERATION.md](UGC-MODERATION.md) — модерация UGC и Community Guidelines
+> - [UGC-MODERATION.md](UGC-MODERATION.md) — модерация UGC и система жалоб
+> - [COMMUNITY-GUIDELINES.md](COMMUNITY-GUIDELINES.md) — полный текст Community Guidelines
+> - [AI-ALGORITHMS.md](AI-ALGORITHMS.md) — AI, алгоритмы, прозрачность
 > - [DATA-STORAGE.md](DATA-STORAGE.md) — хранение данных и шифрование
 > - [DEVELOPER-CHECKLIST.md](DEVELOPER-CHECKLIST.md) — единый чеклист разработчика
