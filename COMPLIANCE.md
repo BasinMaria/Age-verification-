@@ -1558,6 +1558,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 Ключ: `NSCameraUsageDescription`
 Значение: `"This allows you to take photos and record videos to share in your profile and posts."`
 
+> ⚠️ **Текст обязателен.** iOS показывает это значение в системном диалоге разрешения. Без текста Apple отклонит приложение.
+
 #### ⚙️ AndroidManifest.xml (Android)
 
 Требуется разрешение: `android.permission.CAMERA`
@@ -1565,6 +1567,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
 ```
+
+> **Почему нет текста, как в iOS?** В Android `<uses-permission>` — это просто декларация. Текст системного диалога генерируется ОС автоматически. Программисту НЕ нужно писать Purpose String. Текст для пользователя показывается на **нашем** pre-permission экране (см. таблицу Frontend выше).
 
 #### ⚙️ Логика Frontend
 
@@ -1621,6 +1625,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 Ключ: `NSMicrophoneUsageDescription`
 Значение: `"This allows you to record voice messages in chats and capture audio for your videos."`
 
+> ⚠️ **Текст обязателен.** iOS показывает это значение в системном диалоге разрешения. Без текста Apple отклонит приложение.
+
 #### ⚙️ AndroidManifest.xml (Android)
 
 Требуется разрешение: `android.permission.RECORD_AUDIO`
@@ -1628,6 +1634,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 ```xml
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 ```
+
+> **Почему нет текста, как в iOS?** В Android `<uses-permission>` — это просто декларация. Текст системного диалога генерируется ОС автоматически. Программисту НЕ нужно писать Purpose String. Текст для пользователя показывается на **нашем** pre-permission экране (см. таблицу Frontend выше).
 
 #### ⚙️ Логика Frontend
 
@@ -1684,6 +1692,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 - `NSCameraUsageDescription`: `"This allows you to take photos and record videos to share in your profile and posts."`
 - `NSMicrophoneUsageDescription`: `"This allows you to record voice messages in chats and capture audio for your videos."`
 
+> ⚠️ **Тексты обязательны.** iOS показывает эти значения в системном диалоге разрешения. Без текстов Apple отклонит приложение.
+
 #### ⚙️ AndroidManifest.xml (Android)
 
 Требуются оба разрешения:
@@ -1694,6 +1704,8 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 ```
+
+> **Почему нет текста, как в iOS?** В Android `<uses-permission>` — это просто декларация. Текст системного диалога генерируется ОС автоматически. Программисту НЕ нужно писать Purpose String. Текст для пользователя показывается на **нашем** pre-permission экране (см. таблицу Frontend выше).
 
 #### ⚙️ Логика Frontend
 
