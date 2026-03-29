@@ -1558,6 +1558,14 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 Ключ: `NSCameraUsageDescription`
 Значение: `"This allows you to take photos and record videos to share in your profile and posts."`
 
+#### ⚙️ AndroidManifest.xml (Android)
+
+Требуется разрешение: `android.permission.CAMERA`
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
 #### ⚙️ Логика Frontend
 
 ```
@@ -1613,6 +1621,14 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 Ключ: `NSMicrophoneUsageDescription`
 Значение: `"This allows you to record voice messages in chats and capture audio for your videos."`
 
+#### ⚙️ AndroidManifest.xml (Android)
+
+Требуется разрешение: `android.permission.RECORD_AUDIO`
+
+```xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+```
+
 #### ⚙️ Логика Frontend
 
 ```
@@ -1667,6 +1683,17 @@ A: Экран блокирующий — нельзя закрыть, нет к�
 Оба ключа должны быть прописаны:
 - `NSCameraUsageDescription`: `"This allows you to take photos and record videos to share in your profile and posts."`
 - `NSMicrophoneUsageDescription`: `"This allows you to record voice messages in chats and capture audio for your videos."`
+
+#### ⚙️ AndroidManifest.xml (Android)
+
+Требуются оба разрешения:
+- `android.permission.CAMERA`
+- `android.permission.RECORD_AUDIO`
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+```
 
 #### ⚙️ Логика Frontend
 
