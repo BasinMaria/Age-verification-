@@ -51,6 +51,8 @@
 
 ## 3. Алгоритмическая лента — рекомендации
 
+> 📋 **Полная техническая спецификация (ТЗ для программистов):** [SMART-FEED-TZ.md](SMART-FEED-TZ.md) — 12 сигналов ранжирования с формулами, Cold Start стратегия, Diversity Slots, штрафные множители, API endpoints, таблицы БД, фазы реализации.
+
 ### Что требует DSA Art. 27
 
 > Онлайн-платформы, использующие рекомендательные системы, **ОБЯЗАНЫ:**
@@ -348,6 +350,7 @@ For details on prohibited content, see our Community Guidelines.
 ---
 
 > **Связанные документы:**
+> - [SMART-FEED-TZ.md](SMART-FEED-TZ.md) — 🛠 **ТЗ: Smart Feed AI** — полная техническая спецификация рекомендательной системы (12 сигналов, формулы, Cold Start, Diversity Slots, API, БД)
 > - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ
 > - [UGC-MODERATION.md](UGC-MODERATION.md) — система жалоб и модерации
 > - [COMMUNITY-GUIDELINES.md](COMMUNITY-GUIDELINES.md) — полный текст Community Guidelines
