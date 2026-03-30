@@ -1,16 +1,20 @@
 ← Назад к [AI-ALGORITHMS.md](AI-ALGORITHMS.md) | [COMPLIANCE.md](../COMPLIANCE.md)
 
-# 🛠 ТЗ: Smart Feed AI — Рекомендательная система BestMe
+# 🛠 ТЗ: Smart Feed — Рекомендательная система BestMe
 
 > **Цель:** Реализовать алгоритм ранжирования контента (Scoring System) для персонализированной ленты Smart Feed и хронологической Natural Feed.
 > Алгоритм ОБЯЗАН соответствовать требованиям **DSA Art. 27**, **EU AI Act**, **GDPR**.
+>
+> **MVP (v1.0–v1.5):** Rule-based scoring — взвешенная сумма сигналов с ручными весами. Обычный алгоритм, **не AI**.
+> **v2.0:** Machine Learning — embeddings, cosine similarity, автоматическая подстройка весов. **Настоящий AI**.
 
 ---
 
 ## Оглавление
 
 1. [Два режима ленты (API)](#1-два-режима-ленты-api)
-2. [Smart Feed 🤖 — Формула ранжирования](#2-smart-feed---формула-ранжирования)
+   - [Rule-Based vs AI — что используется на каждой фазе](#️-rule-based-vs-ai--что-именно-используется-на-каждой-фазе)
+2. [Smart Feed — Формула ранжирования](#2-smart-feed--формула-ранжирования)
 3. [Все сигналы ранжирования (12 сигналов)](#3-все-сигналы-ранжирования)
 4. [Детальное описание каждого сигнала](#4-детальное-описание-каждого-сигнала)
 5. [Правила разнообразия (Diversity Slots)](#5-правила-разнообразия-diversity-slots)
@@ -28,19 +32,39 @@
 
 ## 1. Два режима ленты (API)
 
-| Режим | Endpoint | Описание | ИИ |
+| Режим | Endpoint | Описание | Профилирование |
 |---|---|---|---|
-| **Smart Feed 🤖** | `GET /api/feed?mode=smart` | Персонализированная лента на основе AI-скоринга | ✅ Включён |
-| **Natural Feed 🍃** | `GET /api/feed?mode=natural` | Строгая хронология: `ORDER BY created_at DESC` | ❌ Полностью отключён |
+| **Smart Feed 🤖** | `GET /api/feed?mode=smart` | Персонализированная лента на основе скоринга | ✅ Да (ранжирование) |
+| **Natural Feed 🍃** | `GET /api/feed?mode=natural` | Строгая хронология: `ORDER BY created_at DESC` | ❌ Полностью отключено |
 
 > **DSA Art. 27:** Оба режима **ОБЯЗАТЕЛЬНЫ**. Без Natural Feed = нарушение DSA.
 > Пользователь переключает через UI-тогл вверху ленты: «For You ⚡» / «Recent 🕐»
 
+### ⚠️ Rule-Based vs AI — что именно используется на каждой фазе
+
+| Фаза | Подход | Что делает формула | AI / ML? |
+|---|---|---|---|
+| **MVP (v1.0)** | **Rule-based scoring** (взвешенная сумма) | Пересечение тегов, подписки, `likes/max_likes`, time decay — чистая арифметика | ❌ Нет. Обычный алгоритм с ручными весами |
+| **v1.5** | Rule-based scoring + больше сигналов | Добавляются язык, сообщества, блоги — но логика та же | ❌ Нет |
+| **v2.0** | **Machine Learning** | Embeddings (векторизация контента), cosine similarity, автоматическая подстройка весов | ✅ Настоящий AI |
+
+> **Важно для разработчиков:** Формула `Final Score = W1×Interests + W2×SocialGraph + ...` — это **взвешенная сумма** (weighted sum). На этапе MVP это **не AI и не машинное обучение**. Это rule-based алгоритм, где:
+> - Каждый сигнал (W1–W12) вычисляется **детерминированно** (if/else, пересечение множеств, деление)
+> - Веса задаются **вручную** через конфиг
+> - Результат **полностью предсказуем** — одинаковые входные данные всегда дают одинаковый Score
+>
+> **AI появляется только в v2.0**, когда:
+> 1. Теги заменяются на **embeddings** (векторные представления от нейросети) — `cosineSimilarity(user.embedding, post.embedding)`
+> 2. Веса **обучаются автоматически** на поведении пользователей (а не задаются вручную)
+> 3. Система **предсказывает** вероятность взаимодействия, а не просто считает совпадения
+
 ---
 
-## 2. Smart Feed 🤖 — Формула ранжирования
+## 2. Smart Feed — Формула ранжирования
 
-### Итоговая формула
+### Итоговая формула (Rule-Based Scoring)
+
+> **Тип:** Взвешенная сумма (weighted sum) — НЕ нейросеть. Работает как обычный алгоритм на всех фазах до v2.0.
 
 ```
 Final Score = (
@@ -125,14 +149,21 @@ Final Score = (
 **Формула:**
 ```typescript
 function calcInterests(user: User, post: Post): number {
-  // Подход 1 (MVP): Пересечение тегов
+  // ────────────────────────────────────────────────────
+  // MVP (rule-based): Простое пересечение тегов.
+  // Это НЕ AI — обычная операция над множествами.
+  // ────────────────────────────────────────────────────
   const userTags = new Set([...user.selected_categories, ...user.interacted_categories]);
   const postTags = new Set(post.tags);
   const intersection = [...userTags].filter(t => postTags.has(t));
   return intersection.length / Math.max(postTags.size, 1); // 0.0–1.0
 
-  // Подход 2 (v2): Vector similarity (cosine similarity) между
-  // embedding вектором профиля пользователя и embedding вектором поста
+  // ────────────────────────────────────────────────────
+  // v2.0 (AI/ML): Vector similarity — НАСТОЯЩИЙ AI.
+  // Нейросеть создаёт embedding-векторы для пользователя и поста.
+  // Cosine similarity находит семантическое сходство,
+  // даже если теги разные (yoga ≈ morning-routine ≈ stretching).
+  // ────────────────────────────────────────────────────
   // return cosineSimilarity(user.embedding, post.embedding);
 }
 ```
@@ -916,6 +947,8 @@ GET /api/feed?mode=natural&page=1&page_size=20
 
 ### MVP (v1.0) — Минимум для запуска
 
+> **Подход: Rule-based scoring (обычный алгоритм, без AI/ML)**
+
 | # | Задача | Сигналы | Сложность |
 |---|---|---|---|
 | 1 | Два режима ленты (Smart / Natural) | API endpoint + mode param | 🟡 Средняя |
@@ -930,6 +963,8 @@ GET /api/feed?mode=natural&page=1&page_size=20
 
 ### v1.5 — Расширение
 
+> **Подход: Rule-based scoring (по-прежнему без AI/ML, добавляются новые rule-based сигналы)**
+
 | # | Задача | Сигналы |
 |---|---|---|
 | 10 | Язык контента | W7 LanguageMatch |
@@ -940,15 +975,17 @@ GET /api/feed?mode=natural&page=1&page_size=20
 
 ### v2.0 — Полная персонализация
 
-| # | Задача | Сигналы |
-|---|---|---|
-| 15 | Dwell Time трекинг | W10 DwellTime |
-| 16 | Дискуссии | W9 DiscussionActivity |
-| 17 | Друзья друзей | W11 FriendsOfFriends |
-| 18 | Буст новых авторов | W12 NewCreatorBoost |
-| 19 | Vector Search (embeddings) | Cosine similarity для W1 |
-| 20 | A/B тестирование весов | Config-driven weights |
-| 21 | «Почему этот пост показан» | Explainability UI |
+> **Подход: Machine Learning (здесь появляется настоящий AI)**
+
+| # | Задача | Сигналы | Что меняется по сравнению с rule-based |
+|---|---|---|---|
+| 15 | Dwell Time трекинг | W10 DwellTime | ML-модель анализирует паттерны просмотра |
+| 16 | Дискуссии | W9 DiscussionActivity | — |
+| 17 | Друзья друзей | W11 FriendsOfFriends | — |
+| 18 | Буст новых авторов | W12 NewCreatorBoost | — |
+| 19 | **Vector Search (embeddings)** | **Cosine similarity для W1** | **Теги → нейросетевые векторы. Семантическое сходство вместо пересечения множеств** |
+| 20 | **A/B тестирование весов** | **Config-driven → ML-driven weights** | **Веса обучаются автоматически на поведении пользователей** |
+| 21 | «Почему этот пост показан» | Explainability UI | DSA/AI Act: объяснение решений AI |
 
 ---
 
