@@ -29,7 +29,7 @@
 | Режим | Иконка | Как объяснить пользователю | Как на самом деле работает |
 |---|---|---|---|
 | **Smart Feed ✨** | ✨ | «Curated by our AI based on your wellness goals, interests, and community trends.» | Rule-based scoring (MVP) → ML scoring (v2.0). Формула W1–W12, см. [SMART-FEED-TZ.md](SMART-FEED-TZ.md) |
-| **Natural Feed 🍃** | 🍃 | «Top and newest posts from the whole community, ranked without personal AI profiling.» | Popularity Score (системная метрика: лайки, комменты, сохранения) + New Content Slots. Только подписки/сообщества/друзья. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
+| **Natural Feed 🍃** | 🍃 | «Top and newest posts from your subscriptions, ranked without personal AI profiling.» | Popularity Score (системная метрика: лайки, комменты, сохранения) + New Content Slots. Только подписки/сообщества/друзья. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
 
 ### Для разработчика: Rule-Based vs AI
 
