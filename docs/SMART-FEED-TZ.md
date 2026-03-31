@@ -2,7 +2,7 @@
 
 # 🛠 ТЗ: Smart Feed — Рекомендательная система BestMe
 
-> **Цель:** Реализовать алгоритм ранжирования контента (Scoring System) для персонализированной ленты Smart Feed и хронологической Natural Feed.
+> **Цель:** Реализовать алгоритм ранжирования контента (Scoring System) для персонализированной ленты Smart Feed и ленты по популярности Natural Feed.
 > Алгоритм ОБЯЗАН соответствовать требованиям **DSA Art. 27**, **EU AI Act**, **GDPR**.
 >
 > **MVP (v1.0–v1.5):** Rule-based scoring — взвешенная сумма сигналов с ручными весами. Обычный алгоритм, **не AI**.
@@ -21,7 +21,7 @@
 6. [Буст нового контента (New Content Boost)](#6-буст-нового-контента-new-content-boost)
 7. [Штрафные сигналы (Penalty)](#7-штрафные-сигналы-penalty)
 8. [Cold Start — новые пользователи](#8-cold-start--новые-пользователи)
-9. [Natural Feed 🍃 — Хронологическая лента](#9-natural-feed---хронологическая-лента)
+9. [Natural Feed 🍃 — Лента по популярности без профилирования](#9-natural-feed---лента-по-популярности-без-профилирования)
 10. [ЖЁСТКИЕ ОГРАНИЧЕНИЯ (GDPR / AI Act)](#10-жёсткие-ограничения-gdpr--ai-act)
 11. [Архитектура API](#11-архитектура-api)
 12. [Таблицы БД](#12-таблицы-бд)
@@ -35,7 +35,7 @@
 | Режим | Endpoint | Описание | Профилирование |
 |---|---|---|---|
 | **Smart Feed 🤖** | `GET /api/feed?mode=smart` | Персонализированная лента на основе скоринга | ✅ Да (ранжирование) |
-| **Natural Feed 🍃** | `GET /api/feed?mode=natural` | Строгая хронология: `ORDER BY created_at DESC` | ❌ Полностью отключено |
+| **Natural Feed 🍃** | `GET /api/feed?mode=natural` | Лента по системной популярности: `ORDER BY popularity_score DESC`. Только подписки/сообщества/друзья. Свои посты не показываются | ❌ Полностью отключено |
 
 > **DSA Art. 27:** Оба режима **ОБЯЗАТЕЛЬНЫ**. Без Natural Feed = нарушение DSA.
 > Пользователь переключает через UI-тогл вверху ленты: «Smart Feed ✨» / «Natural Feed 🍃»
@@ -712,41 +712,43 @@ function getWeightsForUser(user: User): Weights {
 
 ---
 
-## 9. Natural Feed 🍃 — Хронологическая лента
+## 9. Natural Feed 🍃 — Лента по популярности без профилирования
 
 ### Принцип
-**ПОЛНОСТЬЮ** отключён AI-скоринг. Никакого профилирования. Строгая хронология.
+**ПОЛНОСТЬЮ** отключён AI-скоринг. Никакого профилирования. Ранжирование по **системной популярности** (одинаковой для всех).
 
-### SQL-запрос (основа)
+> **Полная спецификация Natural Feed:** [NATURAL-FEED.md](NATURAL-FEED.md) — алгоритм Popularity Score, 6 категорий контента, New Content Slots, дедупликация, системные посты.
 
-```sql
-SELECT p.*
-FROM posts p
-WHERE p.status = 'published'
-  AND p.ai_moderation_status != 'auto_removed'
-  AND p.author_id NOT IN (SELECT blocked_id FROM user_blocks WHERE user_id = :current_user)
-  AND (
-    p.visibility = 'public'
-    OR (p.visibility = 'followers' AND p.author_id IN (
-      SELECT following_id FROM follows WHERE follower_id = :current_user
-    ))
-    OR p.author_id = :current_user
-  )
-ORDER BY p.created_at DESC
-LIMIT :page_size OFFSET :offset;
+### Ключевые отличия от Smart Feed
+
+| Аспект | Smart Feed ✨ | Natural Feed 🍃 |
+|---|---|---|
+| **Ранжирование** | Персональный Score (W1–W12) | Системный Popularity Score (одинаковый для всех) |
+| **Область контента** | Вся платформа | Только подписки + сообщества + друзья |
+| **Свои посты** | Могут показываться | ❌ Не показываются |
+| **Профилирование** | ✅ Да | ❌ Полностью отключено |
+| **Новые посты** | Буст через W4 + W12 | New Content Slots (каждый 10-й слот) |
+
+### Формула Popularity Score (кратко)
+
+```
+Popularity Score = (likes×1 + comments×2 + saves×3 + shares×2.5) / √followers × timeDecay
 ```
 
-### Что Natural Feed всё же фильтрует (НЕ ранжирует)
+Подробнее: [NATURAL-FEED.md, Раздел 5](NATURAL-FEED.md#5-алгоритм-popularity-score).
+
+### Что Natural Feed фильтрует
 
 | Фильтр | Причина | Тип |
 |---|---|---|
+| **Свои посты** | Пользователь НЕ видит себя в ленте | Фильтр |
 | **Удалённый контент** | Пост удалён автором или модератором | Фильтр (не показывать) |
 | **Auto-removed AI** | Пост автоматически удалён AI-модерацией | Фильтр |
 | **Заблокированные пользователи** | Пользователь заблокировал автора | Фильтр |
 | **Приватность** | Пост visibility = `followers`, а пользователь не подписан | Фильтр |
-| **Язык** | ❌ НЕ фильтруется (показываем все языки) | — |
-| **Популярность** | ❌ НЕ учитывается (хронология) | — |
-| **Интересы** | ❌ НЕ учитываются (хронология) | — |
+| **Язык** | ✅ Фильтруется по настройкам пользователя (НЕ по поведению) | Фильтр |
+| **Вне подписок** | Автор не в подписках и не в сообществах пользователя | Фильтр |
+| **Интересы** | ❌ НЕ учитываются | — |
 
 ### Natural Feed — Что видит пользователь
 
@@ -754,16 +756,17 @@ LIMIT :page_size OFFSET :offset;
 ┌──────────────────────────────────────────┐
 │  [Smart Feed ✨]  [Natural Feed 🍃] ← АКТ│
 ├──────────────────────────────────────────┤
-│  📝 Пост от @anna — 2 мин назад         │
-│  📸 Фото от @yoga_master — 5 мин назад  │
-│  💬 Дискуссия — 8 мин назад             │
-│  🏢 Бизнес-пост от @spa — 12 мин назад  │
-│  📝 Пост от @mike — 15 мин назад        │
-│  ... строго по времени публикации ...     │
+│  🔥 Популярный пост @anna (Score: 45)   │
+│  🔥 Фото @yoga_master (Score: 38)       │
+│  🔥 Дискуссия в Meditation (Score: 33)   │
+│  ...                                      │
+│  🆕 НОВЫЙ пост @friend (5 мин назад)    │ ← New Content Slot
+│  🔥 Бизнес @spa_center (Score: 12)       │
+│  ...по системной популярности...          │
 └──────────────────────────────────────────┘
 ```
 
-> **DSA Art. 27:** Natural Feed = обязательная альтернатива. Это "non-profiling" mode. Пользователь **ДОЛЖЕН** иметь возможность переключиться на хронологию одним нажатием.
+> **DSA Art. 27:** Natural Feed = обязательная альтернатива. Это "non-profiling" mode. Пользователь **ДОЛЖЕН** иметь возможность переключиться одним нажатием. Popularity Score = системная метрика, не профилирование.
 
 ---
 
@@ -957,7 +960,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 | 4 | Diversity: запрет 3+ подряд | ContentType slot check | 🟢 Простая |
 | 5 | Diversity: бизнес каждый 5-й | Business slot rule | 🟢 Простая |
 | 6 | Cold Start фаза 0–1 | Onboarding categories + Global Trending | 🟡 Средняя |
-| 7 | Natural Feed (хронология) | `ORDER BY created_at DESC` + фильтры | 🟢 Простая |
+| 7 | Natural Feed (популярность) | Popularity Score + подписки/сообщества + New Content Slots | 🟡 Средняя |
 | 8 | UI переключатель ленты | «Smart Feed ✨» / «Natural Feed 🍃» toggle | 🟢 Простая |
 | 9 | Feed audit log | Таблица feed_audit_log | 🟢 Простая |
 
@@ -1002,7 +1005,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 - [ ] Diversity: запрет 3+ подряд одного типа
 - [ ] Diversity: бизнес-пост каждый 5-й слот
 - [ ] Cold Start: онбординг-категории → начальная лента
-- [ ] Natural Feed: `ORDER BY created_at DESC` + базовые фильтры
+- [ ] Natural Feed: `ORDER BY popularity_score DESC` + подписки/сообщества + New Content Slots
 - [ ] `feed_audit_log` — логирование каждого показа (DSA Art. 27)
 - [ ] `user_feed_preferences` — хранение выбора mode + languages
 - [ ] Запрещённые фичи (раса, религия и т.д.) **НЕ** попадают в scoring
@@ -1024,7 +1027,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 ---
 
 > **Связанные документы:**
-> - [NATURAL-FEED.md](NATURAL-FEED.md) — ТЗ Natural Feed (хронологическая лента, SQL, пагинация, конец контента)
+> - [NATURAL-FEED.md](NATURAL-FEED.md) — ТЗ Natural Feed (Popularity Score, подписки, New Content Slots, дедупликация)
 > - [FEED-UI.md](FEED-UI.md) — Интерфейс ленты, настройки, права пользователя, тексты для ToS/PP
 > - [AI-ALGORITHMS.md](AI-ALGORITHMS.md) — общее описание AI-систем + модерация
 > - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ compliance

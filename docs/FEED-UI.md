@@ -29,14 +29,14 @@
 | Режим | Иконка | Как объяснить пользователю | Как на самом деле работает |
 |---|---|---|---|
 | **Smart Feed ✨** | ✨ | «Curated by our AI based on your wellness goals, interests, and community trends.» | Rule-based scoring (MVP) → ML scoring (v2.0). Формула W1–W12, см. [SMART-FEED-TZ.md](SMART-FEED-TZ.md) |
-| **Natural Feed 🍃** | 🍃 | «Trending and new posts from the community, without personal AI profiling.» | `ORDER BY created_at DESC`. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
+| **Natural Feed 🍃** | 🍃 | «Top and newest posts from the whole community, ranked without personal AI profiling.» | Popularity Score (системная метрика: лайки, комменты, сохранения) + New Content Slots. Только подписки/сообщества/друзья. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
 
 ### Для разработчика: Rule-Based vs AI
 
 | Фаза | Smart Feed ✨ | Natural Feed 🍃 |
 |---|---|---|
-| **MVP (v1.0)** | Rule-based scoring (взвешенная сумма W1–W12). Это **обычный алгоритм с IF/ELSE**, не AI | Простой `ORDER BY created_at DESC` |
-| **v1.5** | Rule-based + больше сигналов (сообщества, язык, блоги). По-прежнему **не AI** | Без изменений |
+| **MVP (v1.0)** | Rule-based scoring (взвешенная сумма W1–W12). Это **обычный алгоритм с IF/ELSE**, не AI | `ORDER BY popularity_score DESC` — системная популярность (одинаковая для всех). Только подписки + сообщества |
+| **v1.5** | Rule-based + больше сигналов (сообщества, язык, блоги). По-прежнему **не AI** | + New Content Slots, системные посты |
 | **v2.0** | **Настоящий AI/ML** — embeddings, cosine similarity, auto-tuned weights | **Без изменений** — Natural Feed никогда не использует AI |
 
 > **Ключевой момент:** На этапах MVP и v1.5 формула `Final Score = W1×Interests + W2×SocialGraph + ...` — это **арифметика**, не AI. AI появляется **только в v2.0**. Подробнее: [SMART-FEED-TZ.md, Раздел 1](SMART-FEED-TZ.md#1-два-режима-ленты-api).
