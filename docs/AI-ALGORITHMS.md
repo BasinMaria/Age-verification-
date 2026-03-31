@@ -84,14 +84,14 @@
 
 | Элемент | Текст (EN) | Ключ перевода |
 |---|---|---|
-| **Иконка/кнопка** | ⚡ / 🕐 | `feed_mode_toggle` |
-| **Алгоритмическая** | For You | `feed_mode_for_you` |
-| **Хронологическая** | Recent | `feed_mode_recent` |
-| **Подсказка (tooltip)** | Your feed is sorted by our recommendation algorithm. Switch to chronological to see posts in order of publication. | `feed_mode_explanation` |
+| **Иконка/кнопка** | ✨ / 🍃 | `feed_mode_toggle` |
+| **Алгоритмическая** | Smart Feed | `feed_mode_smart` |
+| **Хронологическая** | Natural Feed | `feed_mode_natural` |
+| **Подсказка (tooltip)** | Your feed is sorted by our recommendation algorithm. Switch to Natural Feed to see posts in order of publication. | `feed_mode_explanation` |
 | **Настройки** | Feed preferences | `feed_preferences` |
-| **В настройках** | Default feed: [For You ▼] / [Recent ▼] | `default_feed_setting` |
+| **В настройках** | Default feed: [Smart Feed ▼] / [Natural Feed ▼] | `default_feed_setting` |
 
-> **Для дизайнера:** Простейший вариант — две вкладки вверху ленты: «For You» и «Recent». Аналог Instagram / Twitter(X).
+> **Для дизайнера:** Две вкладки вверху ленты: «Smart Feed ✨» и «Natural Feed 🍃». **НЕ используйте** «For You», «Recent», «Trending» — только «Smart Feed» и «Natural Feed».
 
 ---
 
@@ -255,7 +255,7 @@ For details on prohibited content, see our Community Guidelines.
 
 | Место | Что показать |
 |---|---|
-| **Feed (верх экрана)** | Переключатель «For You» / «Recent» |
+| **Feed (верх экрана)** | Переключатель «Smart Feed ✨» / «Natural Feed 🍃» |
 | **Settings → Feed Preferences** | Выбор ленты по умолчанию + объяснение алгоритма |
 
 ### 8.2. О рекомендациях (Settings)
@@ -263,7 +263,7 @@ For details on prohibited content, see our Community Guidelines.
 | Элемент | Текст (EN) | Ключ перевода |
 |---|---|---|
 | **Пункт меню** | About recommendations | `about_recommendations` |
-| **Описание** | Your «For You» feed is personalized using an algorithm that considers your interests, interactions, and who you follow. You can switch to chronological order at any time. | `recommendations_description` |
+| **Описание** | Your Smart Feed is personalized using an algorithm that considers your interests, interactions, and who you follow. You can switch to Natural Feed (chronological order) at any time. | `recommendations_description` |
 | **Ссылка** | Learn more in our Terms of Service | `learn_more_tos` |
 
 ### 8.3. Раскрытие AI при модерации
@@ -286,7 +286,7 @@ For details on prohibited content, see our Community Guidelines.
 
 | # | Что сделать | Приоритет | Сложность |
 |---|---|---|---|
-| 1 | **Переключатель ленты** «For You» / «Recent» | 🔴 Обязательно (DSA Art. 27) | Простая |
+| 1 | **Переключатель ленты** «Smart Feed ✨» / «Natural Feed 🍃» | 🔴 Обязательно (DSA Art. 27) | Простая |
 | 2 | **Описание алгоритма** в Settings | 🔴 Обязательно (DSA Art. 27) | Текст |
 | 3 | **AI-модерация** — хотя бы CSAM + spam detection | 🔴 Обязательно (Apple/Google) | Средняя |
 | 4 | **Уведомление** «решение AI + апелляция» при удалении | 🔴 Обязательно (GDPR Art. 22, DSA Art. 17) | Простая |
@@ -308,7 +308,7 @@ For details on prohibited content, see our Community Guidelines.
 
 ### В приложении
 
-- [ ] Переключатель ленты «For You» / «Recent» — работает
+- [ ] Переключатель ленты «Smart Feed ✨» / «Natural Feed 🍃» — работает
 - [ ] Settings → About recommendations — текст есть
 - [ ] Settings → Feed Preferences — выбор по умолчанию
 - [ ] При удалении контента AI → уведомление с причиной + кнопка Appeal
