@@ -263,16 +263,20 @@ WHERE p.status = 'published'
   )
   -- 7. Языковой фильтр (НЕ профилирование — пользовательская настройка)
   AND (
-    :user_languages IS NULL  -- пользователь выбрал «All languages»
-    OR p.language IN (:user_languages)
-    OR p.language IS NULL    -- посты без определённого языка
+    -- Если у пользователя НЕТ записей в user_content_languages → показываем всё
+    NOT EXISTS (SELECT 1 FROM user_content_languages WHERE user_id = :current_user)
+    -- Иначе показываем посты на выбранных языках
+    OR p.language IN (
+      SELECT language FROM user_content_languages WHERE user_id = :current_user
+    )
+    OR p.language IS NULL  -- посты без определённого языка
   )
 ORDER BY p.created_at DESC
 LIMIT :page_size
 OFFSET :offset;
 ```
 
-> **Примечание:** `:user_languages` — массив языков из `user_content_languages` или из `Accept-Language` заголовка устройства. Если пользователь выбрал «All languages» → `:user_languages = NULL`, условие не применяется.
+> **Примечание:** Если у пользователя нет записей в `user_content_languages` → бэкенд должен при первом запросе создать запись на основе `Accept-Language` заголовка устройства. Если пользователь выбрал «All languages» → удалить все записи из `user_content_languages` для этого пользователя.
 
 ### Индексы для производительности
 
