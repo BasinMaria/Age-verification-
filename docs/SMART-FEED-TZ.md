@@ -38,7 +38,7 @@
 | **Natural Feed 🍃** | `GET /api/feed?mode=natural` | Строгая хронология: `ORDER BY created_at DESC` | ❌ Полностью отключено |
 
 > **DSA Art. 27:** Оба режима **ОБЯЗАТЕЛЬНЫ**. Без Natural Feed = нарушение DSA.
-> Пользователь переключает через UI-тогл вверху ленты: «For You ⚡» / «Recent 🕐»
+> Пользователь переключает через UI-тогл вверху ленты: «Smart Feed ✨» / «Natural Feed 🍃»
 
 ### ⚠️ Rule-Based vs AI — что именно используется на каждой фазе
 
@@ -752,7 +752,7 @@ LIMIT :page_size OFFSET :offset;
 
 ```
 ┌──────────────────────────────────────────┐
-│  [For You ⚡]    [Recent 🕐] ← АКТИВЕН  │
+│  [Smart Feed ✨]  [Natural Feed 🍃] ← АКТ│
 ├──────────────────────────────────────────┤
 │  📝 Пост от @anna — 2 мин назад         │
 │  📸 Фото от @yoga_master — 5 мин назад  │
@@ -958,7 +958,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 | 5 | Diversity: бизнес каждый 5-й | Business slot rule | 🟢 Простая |
 | 6 | Cold Start фаза 0–1 | Onboarding categories + Global Trending | 🟡 Средняя |
 | 7 | Natural Feed (хронология) | `ORDER BY created_at DESC` + фильтры | 🟢 Простая |
-| 8 | UI переключатель ленты | «For You» / «Recent» toggle | 🟢 Простая |
+| 8 | UI переключатель ленты | «Smart Feed ✨» / «Natural Feed 🍃» toggle | 🟢 Простая |
 | 9 | Feed audit log | Таблица feed_audit_log | 🟢 Простая |
 
 ### v1.5 — Расширение
@@ -1009,7 +1009,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 
 ### Frontend
 
-- [ ] Переключатель «For You ⚡» / «Recent 🕐» в Feed
+- [ ] Переключатель «Smart Feed ✨» / «Natural Feed 🍃» в Feed
 - [ ] Settings → Feed Preferences (default mode + languages)
 - [ ] Settings → About Recommendations (объяснение алгоритма)
 - [ ] Cold Start: карточки «подпишись», «вступи в сообщество»

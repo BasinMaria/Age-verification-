@@ -28,12 +28,12 @@
 
 | Режим | Иконка | Как объяснить пользователю | Как на самом деле работает |
 |---|---|---|---|
-| **For You ⚡** | ⚡ | «Posts selected for you based on your interests and who you follow» | Rule-based scoring (MVP) → ML scoring (v2.0). Формула W1–W12, см. [SMART-FEED-TZ.md](SMART-FEED-TZ.md) |
-| **Recent 🕐** | 🕐 | «All posts in order of publication, newest first. No algorithm.» | `ORDER BY created_at DESC`. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
+| **Smart Feed ✨** | ✨ | «Curated by our AI based on your wellness goals, interests, and community trends.» | Rule-based scoring (MVP) → ML scoring (v2.0). Формула W1–W12, см. [SMART-FEED-TZ.md](SMART-FEED-TZ.md) |
+| **Natural Feed 🍃** | 🍃 | «Trending and new posts from the community, without personal AI profiling.» | `ORDER BY created_at DESC`. Без профилирования. См. [NATURAL-FEED.md](NATURAL-FEED.md) |
 
 ### Для разработчика: Rule-Based vs AI
 
-| Фаза | Smart Feed «For You» | Natural Feed «Recent» |
+| Фаза | Smart Feed ✨ | Natural Feed 🍃 |
 |---|---|---|
 | **MVP (v1.0)** | Rule-based scoring (взвешенная сумма W1–W12). Это **обычный алгоритм с IF/ELSE**, не AI | Простой `ORDER BY created_at DESC` |
 | **v1.5** | Rule-based + больше сигналов (сообщества, язык, блоги). По-прежнему **не AI** | Без изменений |
@@ -51,7 +51,7 @@
 
 | # | Право | Что может сделать пользователь | Закон | Где в UI |
 |---|---|---|---|---|
-| 1 | **Выключить алгоритм** | Переключить ленту с «For You» на «Recent» одним нажатием | DSA Art. 27 | Переключатель вверху ленты |
+| 1 | **Выключить алгоритм** | Переключить ленту с «Smart Feed» на «Natural Feed» одним нажатием | DSA Art. 27 | Переключатель вверху ленты |
 | 2 | **Знать, почему показан контент** | Прочитать объяснение параметров ранжирования | DSA Art. 27 + AI Act Art. 50 | Settings → About recommendations |
 | 3 | **Пожаловаться на контент** | Нажать «Report» на любом посте | DSA Art. 16 + Apple §1.2 | Меню поста (···) → Report |
 | 4 | **Заблокировать пользователя** | Нажать «Block» — контент этого автора исчезает из ленты | DSA Art. 16 + Apple §1.2 | Меню поста (···) → Block |
@@ -66,7 +66,7 @@
 | 8 | **Не интересно** | Нажать «Not interested» — алгоритм снижает вес подобного контента | DSA Art. 27 | Меню поста (···) → Not interested |
 | 9 | **Изменить интересы** | Зайти в настройки и изменить выбранные категории wellness | DSA Art. 27 + GDPR Art. 16 (исправление данных) | Settings → My interests |
 | 10 | **Сбросить ленту** | Нажать «Reset Smart Feed» — алгоритм забывает историю лайков/просмотров, лента обучается заново | GDPR Art. 16 (исправление) + GDPR Art. 21 (возражение против профилирования) | Settings → Feed & Content → Reset |
-| 11 | **Выбрать ленту по умолчанию** | Установить «Recent» как основную ленту (вместо «For You») | DSA Art. 27 | Settings → Feed & Content |
+| 11 | **Выбрать ленту по умолчанию** | Установить «Natural Feed» как основную ленту (вместо «Smart Feed») | DSA Art. 27 | Settings → Feed & Content |
 
 ### Чего пользователь НЕ может (и это нормально)
 
@@ -85,7 +85,7 @@
 
 ```
 ┌─────────────────────────────────────────────┐
-│  [For You ⚡]    [Recent 🕐]                │
+│  [Smart Feed ✨]    [Natural Feed 🍃]       │
 │  ─────────────────────────────────────────  │
 │                                             │
 │  📝 Post content...                         │
@@ -102,11 +102,11 @@
 
 | Элемент | Значение | Ключ перевода |
 |---|---|---|
-| **Вкладка 1** | For You ⚡ | `feed_tab_for_you` |
-| **Вкладка 2** | Recent 🕐 | `feed_tab_recent` |
-| **Tooltip (при первом показе)** | Your feed is personalized. Tap «Recent» for chronological order. | `feed_toggle_tooltip` |
+| **Вкладка 1** | Smart Feed ✨ | `feed_tab_smart` |
+| **Вкладка 2** | Natural Feed 🍃 | `feed_tab_natural` |
+| **Tooltip (при первом показе)** | Your feed is personalized. Tap «Natural Feed» for chronological order. | `feed_toggle_tooltip` |
 
-> **Для дизайнера:** Две вкладки вверху экрана, как в Twitter/X или Instagram. Активная вкладка подчёркнута. Переключение — одно нажатие.
+> **Для дизайнера:** Две вкладки вверху экрана, как в Twitter/X или Instagram. Активная вкладка подчёркнута. Переключение — одно нажатие. **Используйте ТОЛЬКО названия «Smart Feed» и «Natural Feed»** — никаких «For You», «Recent», «Trending».
 
 ---
 
@@ -156,7 +156,7 @@
 │  ─────────────────────────────────────── │
 │                                           │
 │  📋 Feed & Content                        │
-│  ├── Default feed             [For You ▼] │
+│  ├── Default feed        [Smart Feed ▼]  │
 │  ├── My interests / Goals     [Edit →]    │
 │  ├── Content languages        [EN, RU →]  │
 │  ├── 🔄 Reset Smart Feed      [Reset]     │
@@ -175,7 +175,7 @@
 
 | # | Настройка | Тип | Значения | По умолчанию | Ключ перевода | Закон |
 |---|---|---|---|---|---|---|
-| 1 | **Default feed** | Dropdown | `For You` / `Recent` | `For You` | `setting_default_feed` | DSA Art. 27 |
+| 1 | **Default feed** | Dropdown | `Smart Feed` / `Natural Feed` | `Smart Feed` | `setting_default_feed` | DSA Art. 27 |
 | 2 | **My interests / Goals** | Экран выбора | Список категорий wellness (мульти-выбор) | Выбранное при онбординге | `setting_my_interests` | DSA Art. 27 + GDPR Art. 16 |
 | 3 | **Content languages** | Мульти-выбор | Языки | Язык устройства | `setting_content_languages` | — |
 | 4 | **Reset Smart Feed** | Кнопка | — | — | `setting_reset_feed` | GDPR Art. 16, Art. 21 |
@@ -185,8 +185,8 @@
 
 | Значение | Описание |
 |---|---|
-| **For You** (по умолчанию) | При каждом входе в приложение открывается Smart Feed |
-| **Recent** | При каждом входе в приложение открывается Natural Feed |
+| **For You** (по умолчанию) → `Smart Feed` | При каждом входе в приложение открывается Smart Feed |
+| **Recent** → `Natural Feed` | При каждом входе в приложение открывается Natural Feed |
 
 > **Backend:** `user_feed_preferences.default_mode = 'smart' | 'natural'`
 
@@ -195,8 +195,8 @@
 | Элемент | Текст (EN) | Ключ перевода |
 |---|---|---|
 | **Заголовок** | My wellness interests | `interests_title` |
-| **Подзаголовок** | Choose topics you care about. This helps us show relevant content in your For You feed. | `interests_subtitle` |
-| **Примечание** | Changes take effect immediately. Your Recent feed is not affected. | `interests_note` |
+| **Подзаголовок** | Choose topics you care about. This helps us show relevant content in your Smart Feed. | `interests_subtitle` |
+| **Примечание** | Changes take effect immediately. Your Natural Feed is not affected. | `interests_note` |
 
 > **Категории:** Те же что при онбординге — yoga, meditation, nutrition, fitness, mental health, sleep, mindfulness, journaling и т.д.
 > **Минимум:** 1 категория. **Максимум:** без ограничений.
@@ -215,8 +215,8 @@
 ```
 HOW YOUR FEED WORKS
 
-For You ⚡
-Your «For You» feed shows posts selected based on:
+Smart Feed ✨
+Your Smart Feed shows posts selected based on:
 • Your interests and wellness goals
 • Accounts you follow
 • Posts you've liked, commented on, or saved
@@ -226,8 +226,8 @@ Your «For You» feed shows posts selected based on:
 
 We do NOT use your race, ethnicity, religion, political views, sexual orientation, or health conditions to rank content.
 
-Recent 🕐
-Your «Recent» feed shows all posts in order of publication time — newest first. No algorithm, no personalization.
+Natural Feed 🍃
+Your Natural Feed shows all posts in order of publication time — newest first. No algorithm, no personalization. Filtered only by your language settings.
 
 You can switch between feeds at any time.
 
@@ -249,7 +249,7 @@ YOUR CONTROLS
 > **Юридическое основание:**
 > - GDPR Art. 16 — Право на исправление данных
 > - GDPR Art. 21 — Право на возражение против профилирования
-> - Аналог функции «Reset For You page» в TikTok (добавлена под давлением европейских регуляторов)
+> - Аналог функции «Reset Feed» в TikTok (добавлена под давлением европейских регуляторов)
 
 ### UI
 
@@ -295,16 +295,16 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
 
 1. FEED MODES
    BestMe offers two feed modes:
-   (a) "For You" — a personalized feed that ranks content based on your
+   (a) "Smart Feed" — a personalized feed that ranks content based on your
        interests, interactions, and who you follow.
-   (b) "Recent" — a chronological feed that shows all posts in order of
+   (b) "Natural Feed" — a chronological feed that shows all posts in order of
        publication time, without any personalization or profiling.
 
    You can switch between modes at any time. You can set your preferred
    default feed in Settings → Feed & Content.
 
 2. RANKING PARAMETERS (DSA Art. 27)
-   The "For You" feed ranks content based on these main parameters:
+   The Smart Feed ranks content based on these main parameters:
    • Your stated wellness interests and goals
    • Accounts you follow and your friends
    • Content popularity (likes, comments, saves)
@@ -318,7 +318,7 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
 
 3. YOUR CONTROLS
    You have the following controls over your feed:
-   • Switch to chronological feed ("Recent") at any time
+   • Switch to chronological feed ("Natural Feed") at any time
    • Set your default feed mode
    • Edit your interests and wellness goals
    • Hide individual posts or mark them as "Not interested"
@@ -327,17 +327,17 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
    • Report content that violates our Community Guidelines
 
 4. DATA AND PROFILING
-   The "For You" feed uses profiling (analysis of your interactions) to
-   personalize content. The "Recent" feed does not use any profiling.
+   The Smart Feed uses profiling (analysis of your interactions) to
+   personalize content. The Natural Feed does not use any profiling.
 
    You may object to profiling at any time by:
-   (a) Switching to the "Recent" feed
+   (a) Switching to the Natural Feed
    (b) Resetting your Smart Feed (Settings → Feed & Content → Reset)
 
 5. AI DISCLOSURE (EU AI Act Art. 50)
-   As of version 2.0, the "For You" feed may use machine learning models
+   As of version 2.0, the Smart Feed may use machine learning models
    to rank content. Prior versions use rule-based algorithms (not AI).
-   The "Recent" feed never uses AI or machine learning.
+   The Natural Feed never uses AI or machine learning.
 ```
 
 ### Текст для ToS (RU)
@@ -347,16 +347,17 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
 
 1. РЕЖИМЫ ЛЕНТЫ
    BestMe предлагает два режима ленты:
-   (а) «Для вас» — персонализированная лента, которая ранжирует контент
-       на основе ваших интересов, взаимодействий и подписок.
-   (б) «Недавнее» — хронологическая лента, показывающая все посты по времени
-       публикации без какой-либо персонализации или профилирования.
+   (а) «Smart Feed» (Умная лента) — персонализированная лента, которая
+       ранжирует контент на основе ваших интересов, взаимодействий и подписок.
+   (б) «Natural Feed» (Натуральная лента) — хронологическая лента,
+       показывающая все посты по времени публикации без какой-либо
+       персонализации или профилирования.
 
    Вы можете переключаться между режимами в любой момент. Режим по
    умолчанию можно выбрать в Настройки → Лента и контент.
 
 2. ПАРАМЕТРЫ РАНЖИРОВАНИЯ (DSA Art. 27)
-   Лента «Для вас» ранжирует контент по следующим основным параметрам:
+   Smart Feed ранжирует контент по следующим основным параметрам:
    • Ваши интересы и цели в сфере здоровья
    • Аккаунты, на которые вы подписаны, и ваши друзья
    • Популярность контента (лайки, комментарии, сохранения)
@@ -371,7 +372,7 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
 
 3. ВАШИ ВОЗМОЖНОСТИ УПРАВЛЕНИЯ
    Вы можете:
-   • Переключиться на хронологическую ленту в любой момент
+   • Переключиться на хронологическую ленту (Natural Feed) в любой момент
    • Установить режим ленты по умолчанию
    • Редактировать свои интересы и цели
    • Скрывать отдельные посты или отмечать их как «Не интересно»
@@ -380,18 +381,18 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
    • Жаловаться на контент, нарушающий правила сообщества
 
 4. ДАННЫЕ И ПРОФИЛИРОВАНИЕ
-   Лента «Для вас» использует профилирование (анализ ваших действий)
-   для персонализации контента. Лента «Недавнее» не использует
+   Smart Feed использует профилирование (анализ ваших действий)
+   для персонализации контента. Natural Feed не использует
    никакого профилирования.
 
    Вы можете возразить против профилирования в любой момент:
-   (а) Переключившись на ленту «Недавнее»
+   (а) Переключившись на Natural Feed
    (б) Сбросив умную ленту (Настройки → Лента и контент → Сброс)
 
 5. РАСКРЫТИЕ ИИ (EU AI Act Art. 50)
-   Начиная с версии 2.0, лента «Для вас» может использовать модели
+   Начиная с версии 2.0, Smart Feed может использовать модели
    машинного обучения для ранжирования контента. В более ранних версиях
-   используются алгоритмы на правилах (не ИИ). Лента «Недавнее» никогда
+   используются алгоритмы на правилах (не ИИ). Natural Feed никогда
    не использует ИИ или машинное обучение.
 ```
 
@@ -408,7 +409,7 @@ RECOMMENDATION SYSTEM AND CONTENT FEED
 CONTENT FEED AND PROFILING
 
 How We Personalize Your Feed
-When you use the "For You" feed, we process the following data to rank
+When you use the Smart Feed, we process the following data to rank
 content for you:
 • Categories and wellness goals you selected during onboarding
 • Your interactions: posts you liked, commented on, saved, or spent
@@ -430,14 +431,15 @@ health conditions, genetic or biometric data, exact date of birth
 
 Your Right to Opt Out of Profiling
 You can opt out of content profiling at any time by:
-1. Switching to the "Recent" (chronological) feed — tap the "Recent"
-   tab at the top of your feed.
-2. Setting "Recent" as your default feed in Settings → Feed & Content.
+1. Switching to the Natural Feed (chronological) — tap the
+   "Natural Feed" tab at the top of your feed.
+2. Setting Natural Feed as your default feed in Settings → Feed & Content.
 3. Resetting your Smart Feed (Settings → Feed & Content → Reset).
    This deletes your interaction history used by the algorithm.
 
-When you use the "Recent" feed, no profiling takes place. Posts are
-shown strictly in reverse chronological order.
+When you use the Natural Feed, no profiling takes place. Posts are
+shown strictly in reverse chronological order, filtered by your
+language preferences only.
 
 Data Retention for Feed
 • Interaction statistics (likes, dwell time aggregates) are retained
@@ -456,8 +458,8 @@ Data Retention for Feed
 ЛЕНТА КОНТЕНТА И ПРОФИЛИРОВАНИЕ
 
 Как мы персонализируем вашу ленту
-Когда вы используете ленту «Для вас», мы обрабатываем следующие данные
-для ранжирования контента:
+Когда вы используете Smart Feed (Умную ленту), мы обрабатываем следующие
+данные для ранжирования контента:
 • Категории и цели, которые вы выбрали при регистрации
 • Ваши действия: посты, которые вы лайкнули, прокомментировали,
   сохранили или просматривали (время задержки внимания)
@@ -479,15 +481,16 @@ Data Retention for Feed
 
 Ваше право отказаться от профилирования
 Вы можете отказаться от профилирования контента в любой момент:
-1. Переключитесь на ленту «Недавнее» — нажмите вкладку «Recent»
-   вверху ленты.
-2. Установите «Недавнее» как ленту по умолчанию в Настройки →
+1. Переключитесь на Natural Feed (Натуральную ленту) — нажмите вкладку
+   «Natural Feed» вверху ленты.
+2. Установите Natural Feed как ленту по умолчанию в Настройки →
    Лента и контент.
 3. Сбросьте умную ленту (Настройки → Лента и контент → Сброс).
    Это удалит историю взаимодействий, используемую алгоритмом.
 
-Когда вы используете ленту «Недавнее», никакого профилирования не
-происходит. Посты показываются строго в обратном хронологическом порядке.
+Когда вы используете Natural Feed, никакого профилирования не
+происходит. Посты показываются строго в обратном хронологическом порядке,
+фильтруясь только по вашим языковым настройкам.
 
 Сроки хранения данных ленты
 • Статистика взаимодействий (лайки, среднее время просмотра) хранится
@@ -602,7 +605,7 @@ CREATE POLICY user_blocks_own ON user_blocks
 
 ### Обязательно (по закону)
 
-- [ ] Переключатель «For You» / «Recent» работает (DSA Art. 27)
+- [ ] Переключатель «Smart Feed ✨» / «Natural Feed 🍃» работает (DSA Art. 27)
 - [ ] Settings → «About recommendations» с описанием параметров (DSA Art. 27 + AI Act Art. 50)
 - [ ] Кнопка «Report» на каждом посте (DSA Art. 16)
 - [ ] Кнопка «Block» на каждом посте (Apple §1.2)
