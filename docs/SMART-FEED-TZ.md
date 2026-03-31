@@ -717,7 +717,7 @@ function getWeightsForUser(user: User): Weights {
 ### Принцип
 **ПОЛНОСТЬЮ** отключён AI-скоринг. Никакого профилирования. Ранжирование по **системной популярности** (одинаковой для всех).
 
-> **Полная спецификация Natural Feed:** [NATURAL-FEED.md](NATURAL-FEED.md) — алгоритм Popularity Score, 6 категорий контента, New Content Slots, дедупликация, системные посты.
+> **Полная спецификация Natural Feed:** [NATURAL-FEED.md](NATURAL-FEED.md) — полный алгоритм сборки ленты (Шаги 0–6), мастер-таблица всех видов контента и порядка отображения, Popularity Score, 6 категорий контента, New Content Slots, системные посты, профильные данные (что можно/нельзя), юридическое обоснование.
 
 ### Ключевые отличия от Smart Feed
 
@@ -1027,7 +1027,7 @@ GET /api/feed?mode=natural&page=1&page_size=20
 ---
 
 > **Связанные документы:**
-> - [NATURAL-FEED.md](NATURAL-FEED.md) — ТЗ Natural Feed (Popularity Score, подписки, New Content Slots, дедупликация)
+> - [NATURAL-FEED.md](NATURAL-FEED.md) — ТЗ Natural Feed (полный алгоритм сборки ленты, мастер-таблица контента, Popularity Score, профильные данные)
 > - [FEED-UI.md](FEED-UI.md) — Интерфейс ленты, настройки, права пользователя, тексты для ToS/PP
 > - [AI-ALGORITHMS.md](AI-ALGORITHMS.md) — общее описание AI-систем + модерация
 > - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ compliance
