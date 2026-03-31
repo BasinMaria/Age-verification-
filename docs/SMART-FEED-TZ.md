@@ -1,4 +1,4 @@
-← Назад к [AI-ALGORITHMS.md](AI-ALGORITHMS.md) | [COMPLIANCE.md](../COMPLIANCE.md)
+← Назад к [AI-ALGORITHMS.md](AI-ALGORITHMS.md) | [NATURAL-FEED.md](NATURAL-FEED.md) | [FEED-UI.md](FEED-UI.md) | [COMPLIANCE.md](../COMPLIANCE.md)
 
 # 🛠 ТЗ: Smart Feed — Рекомендательная система BestMe
 
@@ -1024,6 +1024,8 @@ GET /api/feed?mode=natural&page=1&page_size=20
 ---
 
 > **Связанные документы:**
+> - [NATURAL-FEED.md](NATURAL-FEED.md) — ТЗ Natural Feed (хронологическая лента, SQL, пагинация, конец контента)
+> - [FEED-UI.md](FEED-UI.md) — Интерфейс ленты, настройки, права пользователя, тексты для ToS/PP
 > - [AI-ALGORITHMS.md](AI-ALGORITHMS.md) — общее описание AI-систем + модерация
 > - [COMPLIANCE.md](../COMPLIANCE.md) — основной документ compliance
 > - [UGC-MODERATION.md](UGC-MODERATION.md) — система жалоб и модерации
