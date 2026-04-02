@@ -25,6 +25,11 @@
 6. [Юридическое обоснование](#6-юридическое-обоснование)
 7. [Техническая реализация (SQL, API, БД)](#7-техническая-реализация-sql-api-бд)
 8. [Чеклист для разработчика](#8-чеклист-для-разработчика)
+9. [🟢 PHASE 1: App Entry & Zero-Second Load (Запуск приложения)](#9--phase-1-app-entry--zero-second-load-запуск-приложения)
+10. [🟡 PHASE 2: Scrolling Engine (Логика скролла)](#10--phase-2-scrolling-engine-логика-скролла)
+11. [🟠 PHASE 3: Impression Tracking & Feed Generation (Защита от дублей + Нагрузки)](#11--phase-3-impression-tracking--feed-generation-защита-от-дублей--нагрузки)
+12. [🔴 PHASE 4: Content Fallback System (Резервный алгоритм)](#12--phase-4-content-fallback-system-резервный-алгоритм)
+13. [🟣 PHASE 5: Anti-Fraud & Rate Limiting (Защита от накрутки)](#13--phase-5-anti-fraud--rate-limiting-защита-от-накрутки)
 
 ---
 
@@ -877,14 +882,512 @@ CREATE TABLE user_seen_posts (
 - [ ] Бизнес-посты имеют метку «Business»
 - [ ] Посты сообществ показывают название сообщества
 
+### Frontend — PHASE 1 (Запуск приложения)
+
+- [ ] Сценарий A: Фоновая предзагрузка ленты во время Onboarding
+- [ ] Сценарий A: Медиа-кэш первых 3 постов при получении токена
+- [ ] Сценарий B: Splash Screen + подъём кэша из SQLite/Room
+- [ ] Сценарий B: Silent Fetch свежей порции параллельно с показом кэша
+- [ ] Сценарий C: WorkManager (Android) / Background Tasks (iOS) раз в 4ч
+
+### Frontend — PHASE 2 (Скролл)
+
+- [ ] Prefetch trigger на 7-м посте (запрос следующих 10)
+- [ ] Virtualized List (RecyclerView / LazyColumn / UICollectionView)
+- [ ] Скролл вверх — только из RAM, без сетевых запросов
+- [ ] Размонтирование постов за 20+ позиций от viewport
+
+### Frontend — PHASE 3 (Отслеживание просмотров)
+
+- [ ] Буфер просмотренных ID (>1 сек на экране)
+- [ ] Отправка пачкой при 10 ID / сворачивании / переключении вкладки
+- [ ] `offline_seen` в локальной БД при потере сети
+- [ ] Блокировка запроса новой ленты до синхронизации `offline_seen`
+
 ### Таблицы БД
 
 - [ ] `posts.popularity_score NUMERIC` — добавлена колонка
-- [ ] `user_seen_posts` — для дедупликации
+- [ ] `seen_posts` — таблица просмотров с TTL 14 дней (PHASE 3)
+- [ ] `seen_posts` — композитный индекс `(user_id, post_id)` (PHASE 3)
+- [ ] `seen_posts` — RLS `auth.uid() = user_id` (PHASE 5)
+- [ ] `post_likes` — `UNIQUE(user_id, post_id)` (PHASE 5)
 - [ ] `user_hidden_posts` — скрытые посты
 - [ ] `user_not_interested` — «не интересно»
 - [ ] `user_content_languages` — выбранные языки
-- [ ] Все индексы созданы (7 штук)
+- [ ] Все индексы созданы
+- [ ] `pg_cron` для очистки `seen_posts` старше 14 дней (PHASE 3)
+
+### Backend — PHASE 4 (Fallback)
+
+- [ ] Time Expansion: 24ч → 3д → 7д → 14д
+- [ ] Category Fallback: пустая категория → Глобальный Топ
+- [ ] Strict Unique: даже при fallback — `seen_posts` абсолютен
+
+### Backend — PHASE 5 (Anti-Fraud)
+
+- [ ] RPC `batch_mark_seen` — SECURITY DEFINER
+- [ ] Max Batch Size: 50 (обычный) / 100 (офлайн)
+- [ ] Rate Limit: 60 просмотров / минуту
+- [ ] RPC `like_post` — SECURITY DEFINER
+- [ ] Like Rate Limit: 1 лайк / секунду → 429
+- [ ] Прямые INSERT через REST API запрещены (RLS `WITH CHECK (false)`)
+
+---
+
+## 9. 🟢 PHASE 1: App Entry & Zero-Second Load (Запуск приложения)
+
+**Цель:** Логика загрузки контента в зависимости от того, в какой раз пользователь открывает приложение. Цель — **0 секунд ожидания** при появлении первого поста на экране.
+
+### 9.1. Сценарий A: Самый первый вход (Onboarding Background Fetch)
+
+| Параметр | Описание |
+|---|---|
+| **Ситуация** | Пользователь только что зарегистрировался и видит экраны приветствия (Welcome Screens). Локальный кэш телефона абсолютно пуст. |
+| **Действие (Клиент)** | Как только токен регистрации получен, приложение **в фоновом потоке** запрашивает у Supabase первую порцию ленты (10 постов по алгоритму «Холодного старта»). |
+| **Медиа-кэш** | Приложение "втихую" скачивает JSON и медиафайлы (фото/видео, аватарки) **как минимум для первых 3-х постов** из полученного списка. |
+| **Результат** | Когда пользователь нажимает финальную кнопку «Начать / Перейти в ленту», рендер 1-го поста происходит за **0 секунд** прямо из памяти телефона. |
+
+**Диаграмма:**
+```
+Регистрация → Токен получен
+      │
+      ├─ [Frontend, фон] → запрос GET /feed?limit=10 (Cold Start)
+      │       │
+      │       └─ ответ → кэш JSON + скачать медиа первых 3 постов
+      │
+      └─ [Frontend, UI] → Welcome Screen 1 → 2 → 3 → «Начать»
+                                                          │
+                                                          └─ Показать пост из кэша → 0 сек
+```
+
+### 9.2. Сценарий B: Повторный вход (Local Cache First + Splash Screen Masking)
+
+| Параметр | Описание |
+|---|---|
+| **Ситуация** | Пользователь ранее пользовался приложением, закрыл его и теперь открывает снова. |
+| **Действие (Клиент)** | При нажатии на иконку приложения отображается **Splash Screen** (экран с логотипом). В эту же миллисекунду приложение поднимает из локальной БД (SQLite/Room) непросмотренный остаток ленты с прошлой сессии. |
+| **Фоновый запрос (Silent Fetch)** | Параллельно клиент отправляет запрос в Supabase на новую свежую порцию постов. |
+| **Результат** | Splash Screen плавно исчезает (максимум через **0.5–1 сек**), и юзер сразу видит локально сохраненный пост. Новые посты от Supabase тихо добавляются "вниз" ленты. |
+
+**Диаграмма:**
+```
+Нажал иконку
+      │
+      ├─ [UI] → Splash Screen (логотип, 0.5–1 сек)
+      │
+      ├─ [Фон, локальная БД] → SELECT * FROM local_feed WHERE seen = 0
+      │       └─ показать первый пост из кэша
+      │
+      └─ [Фон, сеть] → GET /feed?cursor=... (свежая порция)
+              └─ ответ → добавить посты вниз ленты в фоне
+```
+
+### 9.3. Сценарий C: Фоновое обновление ОС (Background App Refresh)
+
+| Параметр | Описание |
+|---|---|
+| **Ситуация** | Телефон заблокирован, приложение лежит в фоне. |
+| **Действие** | Использовать нативные инструменты (**WorkManager** для Android / **Background Tasks** для iOS), чтобы раз в несколько часов приложение тихо просыпалось, запрашивало у Supabase свежую 10-шаговую порцию и сохраняло в локальный кэш. |
+| **Результат** | При следующем открытии приложения свежие посты **уже в кэше** → мгновенный показ. |
+
+**Ограничения:**
+- iOS: Background App Refresh контролируется системой, нет гарантии срабатывания
+- Android: WorkManager c `Constraints(requiresNetwork = true)`, `PeriodicWorkRequest` каждые 4 часа
+- Обе платформы: расход батареи минимален (1 запрос = ~10 KB JSON + медиа первых 3 постов)
+
+### 9.4. Сводная таблица сценариев запуска
+
+| Сценарий | Кэш | Сеть | Время до первого поста | Источник данных |
+|---|---|---|---|---|
+| A. Первый вход | Пуст | ✅ | 0 сек (фоновая предзагрузка во время onboarding) | Supabase → RAM |
+| B. Повторный вход | Есть | ✅ | 0 сек (локальная БД) | SQLite/Room → UI, потом Supabase дозагрузка |
+| B. Повторный вход | Есть | ❌ | 0 сек (локальная БД) | SQLite/Room → UI (офлайн-режим) |
+| C. Background refresh | Обновлён | ✅ | 0 сек (кэш уже свежий) | Локальный кэш |
+
+---
+
+## 10. 🟡 PHASE 2: Scrolling Engine (Логика скролла)
+
+**Цель:** Как приложение подгружает контент, когда юзер уже внутри и листает ленту. Бесшовный, бесконечный скролл без задержек и подёргиваний.
+
+### 10.1. Feed Pagination (Строгие порции)
+
+| Правило | Описание |
+|---|---|
+| **Размер чанка** | Supabase отдает посты строго **порциями по 10 штук**, согласно нашему алгоритму чередования форматов и категорий (см. Секцию 2, Шаги 1–6). |
+| **Запрет полной выгрузки** | Никакой выгрузки всей базы. Только cursor-based pagination. |
+| **Формат ответа** | JSON массив из 10 объектов + `next_cursor` для следующей страницы. |
+
+### 10.2. Prefetching Trigger (Невидимый порог)
+
+| Правило | Описание |
+|---|---|
+| **Порог запроса** | Триггер фонового запроса следующей порции устанавливается на **7-м посте** текущего массива. |
+| **Механизм** | Юзер смотрит пост №7 → приложение отправляет запрос в Supabase на посты №11–20. К моменту, когда юзер доскроллит до 10-го поста, новые посты **уже скачаны** и готовы к показу. |
+| **Буфер** | Запас в 3 поста (7→10) дает ~6–15 сек на загрузку при средней скорости скролла. |
+
+**Диаграмма:**
+```
+Пост 1  2  3  4  5  6  [7]  8  9  10  │  11  12  ...  20
+                         │                │
+                         └─ запрос ──────►│ Supabase
+                            GET /feed      └─ ответ готов к показу
+                            ?cursor=10
+```
+
+### 10.3. Virtualized List (Статичный DOM)
+
+| Правило | Описание |
+|---|---|
+| **Скролл вверх** | Возврат назад (свайп вверх к предыдущим постам) использует **только оперативную память**. Запрещено отправлять сетевые запросы при скролле вверх. |
+| **Ощущение** | Лента должна ощущаться **монолитной** — как одна бесконечная страница без стыков. |
+| **Реализация** | `RecyclerView` (Android) / `LazyColumn` (Compose) / `UICollectionView` (iOS) с viewHolder recycling. В DOM одновременно не более 5–7 видимых элементов. |
+| **Размонтирование** | Посты, удалённые из viewport на 20+ позиций, размонтируются из DOM, но их данные сохраняются в RAM-буфере для мгновенного восстановления при скролле вверх. |
+
+---
+
+## 11. 🟠 PHASE 3: Impression Tracking & Feed Generation (Защита от дублей + Нагрузки)
+
+**Цель:** Как система отслеживает просмотренные посты (seen_posts), предотвращает дубли и оптимизирует нагрузки на БД.
+
+### 11.1. Supabase Schema & Indexes (Структура БД)
+
+| Элемент | Описание |
+|---|---|
+| **Таблица** | `seen_posts` (поля: `user_id UUID`, `post_id UUID`, `viewed_at TIMESTAMPTZ DEFAULT NOW()`) |
+| **Композитный индекс** | `CREATE UNIQUE INDEX idx_seen_posts ON seen_posts(user_id, post_id)` — для сверхбыстрого поиска и защиты от дублей |
+| **Очистка (TTL)** | Настроить `pg_cron` для удаления записей старше **14 дней**: `DELETE FROM seen_posts WHERE viewed_at < NOW() - INTERVAL '14 days'` |
+| **Зачем TTL** | Предотвращает тормоза БД и позволяет повторно использовать контент, когда юзер его уже забыл |
+
+```sql
+-- Создание таблицы
+CREATE TABLE seen_posts (
+  user_id  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id  UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, post_id)
+);
+
+-- Индекс для TTL-запросов очистки
+CREATE INDEX idx_seen_posts_viewed_at ON seen_posts(viewed_at);
+
+-- RLS: юзер видит/пишет только свои записи
+ALTER TABLE seen_posts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY seen_posts_user ON seen_posts
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- pg_cron: очистка каждый день в 4:00 UTC
+SELECT cron.schedule('clean-seen-posts', '0 4 * * *',
+  $$DELETE FROM seen_posts WHERE viewed_at < NOW() - INTERVAL '14 days'$$
+);
+```
+
+### 11.2. Client-Side Batch Tracking (Сбор просмотров на клиенте)
+
+| Правило | Описание |
+|---|---|
+| **Нет мгновенной отправки** | Клиент **НЕ** отправляет запрос на каждый просмотренный пост. |
+| **Локальный буфер** | Клиент копит просмотренные ID (пост был на экране >1 сек) в локальный массив. |
+| **Отправка «пачкой»** | Массив отправляется в Supabase пакетом при: а) пролистывании 10 постов, б) сворачивании приложения, в) переключении вкладки. |
+| **RPC-функция** | `rpc('batch_mark_seen', { post_ids: [...] })` — одна функция записывает все ID за один вызов. |
+
+```typescript
+// Клиент: буфер просмотров
+const seenBuffer: string[] = [];
+
+function onPostVisible(postId: string, duration: number) {
+  if (duration >= 1000 && !seenBuffer.includes(postId)) {
+    seenBuffer.push(postId);
+  }
+  if (seenBuffer.length >= 10) {
+    flushSeenBuffer();
+  }
+}
+
+async function flushSeenBuffer() {
+  if (seenBuffer.length === 0) return;
+  const batch = [...seenBuffer];
+  seenBuffer.length = 0;
+  await supabase.rpc('batch_mark_seen', { post_ids: batch });
+}
+
+// Вызвать flushSeenBuffer() при:
+// - AppState → background
+// - Переключении вкладки
+// - Каждые 10 накопленных ID
+```
+
+### 11.3. Offline Sync Strategy (Защита при потере сети)
+
+| Шаг | Описание |
+|---|---|
+| **1. Нет сети** | Если пропал интернет и юзер листал локальный кэш, просмотренные ID сохраняются в **локальную таблицу** `offline_seen` (SQLite/Room). |
+| **2. Сеть вернулась** | Клиент **блокирует** запрос новой ленты до тех пор, пока массив `offline_seen` не будет успешно отправлен и записан в Supabase. |
+| **3. Порядок** | Сначала → `batch_mark_seen(offline_seen)` → подтверждение → очистить `offline_seen` → только потом → запрос новой ленты. |
+| **Зачем** | Без этого юзер получит **дубли** — посты, которые он уже видел офлайн, снова появятся в ленте. |
+
+### 11.4. Cursor Pagination (Генерация слотов «Новое»)
+
+| Правило | Описание |
+|---|---|
+| **seen_posts игнорируется** | Для свежих постов (New Content Slots) таблица `seen_posts` **игнорируется полностью** (для экономии ресурсов сервера). |
+| **Логика** | Используется **курсорная пагинация**. Сервер просто отдает новые посты, дата создания которых меньше таймстампа последнего увиденного нового поста. |
+| **Курсор** | `WHERE created_at < :last_seen_new_timestamp ORDER BY created_at DESC LIMIT N` |
+
+### 11.5. Database Exclusion (Генерация слотов «Популярное»)
+
+| Правило | Описание |
+|---|---|
+| **seen_posts ОБЯЗАТЕЛЬНА** | Для поиска хитов (популярных постов) Supabase **обязана** отсекать то, что юзер уже видел. |
+| **Оператор** | Использовать строго высокоскоростной оператор `NOT EXISTS`. Оператор `NOT IN` **запрещён** из-за нагрузки. |
+| **TTL-окно** | Запрос проверяет историю просмотров только за период TTL (14 дней). |
+
+```sql
+-- ✅ ПРАВИЛЬНО: NOT EXISTS (быстро)
+SELECT p.*
+FROM posts p
+WHERE p.popularity_score > 0
+  AND NOT EXISTS (
+    SELECT 1 FROM seen_posts sp
+    WHERE sp.user_id = :uid
+      AND sp.post_id = p.id
+      AND sp.viewed_at > NOW() - INTERVAL '14 days'
+  )
+ORDER BY p.popularity_score DESC
+LIMIT 10;
+
+-- ❌ ЗАПРЕЩЕНО: NOT IN (медленно, жрёт память)
+-- WHERE p.id NOT IN (SELECT post_id FROM seen_posts WHERE user_id = :uid)
+```
+
+### 11.6. Batch Deduplication (Защита от дублей внутри порции)
+
+| Правило | Описание |
+|---|---|
+| **Уникальность ID** | При формировании ответа из 10 постов Supabase обязана проверять массив на **уникальность ID**. |
+| **Конфликт «Популярное» vs «Новое»** | Один и тот же пост **не может** занимать слот «Популярное» и «Новое» одновременно. |
+| **Приоритет** | Если ID совпадает — пост отдается как «Популярное», а для «Нового» из БД добирается следующий уникальный пост. |
+| **Реализация** | В RPC-функции: собрать оба массива → `DISTINCT ON (post_id)` → при коллизии оставить в «Популярном». |
+
+---
+
+## 12. 🔴 PHASE 4: Content Fallback System (Резервный алгоритм)
+
+**Цель:** Что делает Supabase, если подходящие посты в БД закончились. Система **никогда** не должна отдавать пустой ответ или ломать 10-шаговый цикл.
+
+### 12.1. Time Expansion (Смещение времени)
+
+| Шаг | Описание |
+|---|---|
+| **По умолчанию** | Алгоритм ищет контент за последние **24 часа**. |
+| **Fallback** | Если запрос возвращает 0 результатов, Supabase динамически расширяет окно поиска: |
+| **Шаг 1** | 24 часа → **3 дня** |
+| **Шаг 2** | 3 дня → **7 дней** |
+| **Шаг 3** | 7 дней → **14 дней** (максимум = TTL seen_posts) |
+
+```sql
+-- Пример реализации в RPC-функции
+DO $$
+DECLARE
+  result_count INT := 0;
+  time_window INTERVAL := '24 hours';
+  windows INTERVAL[] := ARRAY['3 days', '7 days', '14 days'];
+BEGIN
+  -- Попытка с 24 часами
+  SELECT COUNT(*) INTO result_count FROM posts p
+    WHERE p.created_at > NOW() - time_window
+      AND NOT EXISTS (SELECT 1 FROM seen_posts sp WHERE sp.user_id = uid AND sp.post_id = p.id);
+
+  -- Расширение окна при 0 результатов
+  IF result_count = 0 THEN
+    FOREACH time_window IN ARRAY windows LOOP
+      SELECT COUNT(*) INTO result_count FROM posts p
+        WHERE p.created_at > NOW() - time_window
+          AND NOT EXISTS (...);
+      EXIT WHEN result_count > 0;
+    END LOOP;
+  END IF;
+END $$;
+```
+
+### 12.2. Category Fallback (Пропуск пустых зон)
+
+| Правило | Описание |
+|---|---|
+| **Ситуация** | В узкой категории (например, «Окружающая среда») физически нет постов даже за 14 дней. |
+| **Действие** | Сервер **пропускает этот слот** и берет контент из категории №1 (Глобальный Топ — посты с наивысшим popularity_score). |
+| **Цель** | Не отдавать клиенту «пустоту» и не ломать наш 10-шаговый цикл. |
+| **Логика** | `IF category_posts = 0 THEN → SELECT FROM posts ORDER BY popularity_score DESC` |
+
+### 12.3. Strict Unique Enforcement (Строгая уникальность)
+
+| Правило | Описание |
+|---|---|
+| **Абсолютное правило** | `seen_posts` является **абсолютным**. Даже при расширении времени до 14 дней или смещении категорий, серверу **запрещено** отдавать просмотренный пост. |
+| **Пока юзер не увидит всё** | Пост не возвращается, пока его запись не будет удалена TTL-очисткой (через 14 дней). |
+| **Крайний случай** | Если после всех fallback'ов и за 14 дней не найдено ни одного непросмотренного поста → отдать End-of-Feed card (см. Секцию 7.6). |
+
+### 12.4. Сводная таблица Fallback-стратегии
+
+| Приоритет | Стратегия | Условие срабатывания | Действие |
+|---|---|---|---|
+| 1 | Стандартный запрос | Посты есть за 24ч | Отдать по popularity_score |
+| 2 | Time Expansion → 3 дня | 0 постов за 24ч | Расширить окно до 3 дней |
+| 3 | Time Expansion → 7 дней | 0 постов за 3 дня | Расширить окно до 7 дней |
+| 4 | Time Expansion → 14 дней | 0 постов за 7 дней | Расширить окно до 14 дней |
+| 5 | Category Fallback | 0 постов в целевой категории | Взять из Глобального Топа |
+| 6 | End-of-Feed | Вообще нет непросмотренных постов | Показать End-of-Feed card |
+
+---
+
+## 13. 🟣 PHASE 5: Anti-Fraud & Rate Limiting (Защита от накрутки)
+
+**Цель:** Исключить возможность искусственной накрутки просмотров, лайков и попадания в топ через подмену API-запросов.
+
+### 13.1. Защита накрутки просмотров (View Fraud)
+
+#### Action 1: Max Batch Size (Ограничение размера пакета)
+
+| Правило | Описание |
+|---|---|
+| **Лимит** | Жесткий лимит на массив ID при отправке просмотров. |
+| **Нормальный режим** | Максимум **50 постов** за один запрос. |
+| **Офлайн-синхронизация** | Максимум **100 постов** за запрос (после появления из офлайна). |
+| **Превышение** | Если клиент присылает больше — RPC-функция **отклоняет весь запрос** (Drop). |
+
+```sql
+-- Внутри RPC batch_mark_seen
+IF array_length(post_ids, 1) > 50 THEN
+  RAISE EXCEPTION 'Batch size exceeds limit (max 50)';
+END IF;
+```
+
+#### Action 2: Physical Reality Check (Проверка физической реальности)
+
+| Правило | Описание |
+|---|---|
+| **Логика** | Человек физически не может посмотреть 100 постов за 10 секунд. |
+| **Rate Limit** | Один `user_id` может записать в `seen_posts` **не более 60 просмотров в минуту**. |
+| **Превышение** | Всё, что выше — **игнорируется** (Spam Filter), без ошибки клиенту. |
+
+```sql
+-- Проверка внутри RPC-функции
+DECLARE recent_count INT;
+BEGIN
+  SELECT COUNT(*) INTO recent_count
+  FROM seen_posts
+  WHERE user_id = auth.uid()
+    AND viewed_at > NOW() - INTERVAL '1 minute';
+
+  IF recent_count + array_length(post_ids, 1) > 60 THEN
+    -- Тихо обрезать до допустимого лимита
+    post_ids := post_ids[1 : GREATEST(0, 60 - recent_count)];
+  END IF;
+END;
+```
+
+#### Action 3: Supabase RLS — Row Level Security
+
+| Правило | Описание |
+|---|---|
+| **Жёсткое правило** | На таблице `seen_posts` — `CHECK (auth.uid() = user_id)`. |
+| **Результат** | **Никто** не может отправить API-запрос на добавление просмотра от имени другого пользователя. |
+| **Реализация** | RLS-политика (уже описана в Секции 11.1). |
+
+### 13.2. Защита накрутки лайков/реакций (Engagement Fraud)
+
+#### Action 1: Strict Idempotency (Строгая идемпотентность)
+
+| Правило | Описание |
+|---|---|
+| **Уникальный индекс** | В таблице лайков (`post_likes`) **обязателен** уникальный композитный индекс `UNIQUE(user_id, post_id)`. |
+| **Результат** | Даже если хакер отправит 1000 запросов на лайк одного поста за секунду, база данных запишет **только 1 лайк**, а остальные отбросит без ошибки. |
+| **ON CONFLICT** | `INSERT INTO post_likes ... ON CONFLICT (user_id, post_id) DO NOTHING` |
+
+```sql
+CREATE TABLE post_likes (
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, post_id)
+);
+
+-- Запись лайка (идемпотентная)
+INSERT INTO post_likes (user_id, post_id)
+VALUES (auth.uid(), :post_id)
+ON CONFLICT (user_id, post_id) DO NOTHING;
+```
+
+#### Action 2: Like Rate Limit (Ограничение частоты лайков)
+
+| Правило | Описание |
+|---|---|
+| **Лимит** | Не более **1 лайка в секунду** от одного юзера. |
+| **Превышение** | Возвращать ошибку **429 (Too Many Requests)**. |
+| **Цель** | Запретить «пулемётные» лайки от ботов и скриптов. |
+
+```sql
+-- Внутри RPC like_post
+DECLARE last_like TIMESTAMPTZ;
+BEGIN
+  SELECT MAX(created_at) INTO last_like
+  FROM post_likes
+  WHERE user_id = auth.uid();
+
+  IF last_like IS NOT NULL AND last_like > NOW() - INTERVAL '1 second' THEN
+    RAISE EXCEPTION 'Too many requests' USING ERRCODE = '42901'; -- 429
+  END IF;
+
+  INSERT INTO post_likes (user_id, post_id)
+  VALUES (auth.uid(), p_post_id)
+  ON CONFLICT (user_id, post_id) DO NOTHING;
+END;
+```
+
+### 13.3. Защита API (Endpoint Security)
+
+#### Action 1: RPC Only (Только RPC-функции)
+
+| Правило | Описание |
+|---|---|
+| **Запрет** | Для записи лайков и просмотров **отключить** стандартный REST API Supabase (запретить прямые INSERT). |
+| **Метод** | RLS-политика: `FOR INSERT USING (false)` на таблицах `seen_posts` и `post_likes`. |
+| **Результат** | Прямой `POST /rest/v1/seen_posts` → **403 Forbidden**. Только `POST /rest/v1/rpc/batch_mark_seen` работает. |
+
+```sql
+-- Запретить прямые INSERT через REST API
+CREATE POLICY no_direct_insert_seen ON seen_posts
+  FOR INSERT WITH CHECK (false);
+
+-- Разрешить INSERT только из RPC-функций (SECURITY DEFINER)
+-- RPC-функция batch_mark_seen должна быть SECURITY DEFINER
+CREATE OR REPLACE FUNCTION batch_mark_seen(post_ids UUID[])
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER  -- выполняется с правами создателя, минуя RLS
+AS $$ ... $$;
+```
+
+#### Action 2: Custom Functions (Кастомные функции)
+
+| Правило | Описание |
+|---|---|
+| **Принцип** | Запись `seen_posts` и лайков должна идти **ТОЛЬКО** через защищенные PostgreSQL-функции (RPC). |
+| **Внутри RPC** | Именно внутри этих RPC-функций проверяются лимиты (размер батча, частота запросов) **до того**, как данные попадут в таблицу. |
+| **Цепочка** | Клиент → Supabase REST → RPC-функция → [проверка лимитов] → INSERT (или отказ). |
+
+### 13.4. Сводная таблица Anti-Fraud защит
+
+| Вектор атаки | Защита | Лимит | Действие при превышении |
+|---|---|---|---|
+| Массовая отправка seen_posts | Max Batch Size | 50 ID / запрос (100 при офлайн-синхронизации) | Drop всего запроса |
+| Быстрая накрутка просмотров | Rate Limit views | 60 просмотров / минуту | Тихое игнорирование лишних |
+| Просмотр от чужого имени | RLS `auth.uid() = user_id` | — | 403 Forbidden |
+| Множественный лайк одного поста | UNIQUE(user_id, post_id) | 1 лайк на пост | ON CONFLICT DO NOTHING |
+| «Пулемётные» лайки | Rate Limit likes | 1 лайк / секунду | 429 Too Many Requests |
+| Прямой INSERT через REST | RPC Only + RLS `WITH CHECK (false)` | — | 403 Forbidden |
+| Подмена user_id в RPC | `auth.uid()` внутри SECURITY DEFINER | — | Всегда берётся из JWT-токена |
 
 ---
 
